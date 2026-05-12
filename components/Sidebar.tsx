@@ -39,7 +39,7 @@ export function Sidebar() {
         <div className="w-8 h-8 bg-foreground rounded-lg flex-shrink-0 flex items-center justify-center text-background">
           <LayoutGrid size={20} />
         </div>
-        <h1 className="text-xl font-bold tracking-tight">Flow To-Do</h1>
+        <h1 className="text-xl font-bold tracking-tight">Team-Sigma</h1>
       </div>
 
       <div className="px-4 mb-4">

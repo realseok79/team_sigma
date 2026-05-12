@@ -8,7 +8,7 @@ import { TaskProvider } from "@/context/TaskContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Flow To-Do",
+  title: "Team-Sigma",
   description: "Advanced productivity timer and to-do list",
 };
 
