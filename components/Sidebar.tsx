@@ -12,12 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const sidebarItems = [
-  { icon: Sun, label: "오늘의 할 일", href: "/", count: 2 },
-  { icon: Star, label: "중요한 할 일", href: "/important" },
-  { icon: History, label: "히스토리", href: "/history" },
-];
+import { useTaskContext } from "@/context/TaskContext";
 
 const footerItems = [
   { icon: Settings, label: "설정", href: "/settings" },
@@ -26,6 +21,17 @@ const footerItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { state, getImportantTasks } = useTaskContext();
+
+  const todayCount = state.tasks.length;
+  const importantCount = getImportantTasks().length;
+  const historyCount = state.completedTasks.length;
+
+  const sidebarItems = [
+    { icon: Sun, label: "오늘의 할 일", href: "/", count: todayCount > 0 ? todayCount : undefined },
+    { icon: Star, label: "중요한 할 일", href: "/important", count: importantCount > 0 ? importantCount : undefined },
+    { icon: History, label: "히스토리", href: "/history", count: historyCount > 0 ? historyCount : undefined },
+  ];
 
   return (
     <aside className="w-64 bg-sidebar-bg border-r border-border flex flex-col h-screen sticky top-0 transition-colors duration-300">
@@ -37,10 +43,12 @@ export function Sidebar() {
       </div>
 
       <div className="px-4 mb-4">
-        <button className="w-full bg-foreground text-background font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm">
-          <Plus size={18} />
-          <span>새 작업 만들기</span>
-        </button>
+        <Link href="/">
+          <button className="w-full bg-foreground text-background font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-sm">
+            <Plus size={18} />
+            <span>새 작업 만들기</span>
+          </button>
+        </Link>
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-1">
