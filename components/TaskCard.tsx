@@ -53,7 +53,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
   const isActive = task.status === "active";
   const isTodo = task.entryType === "TODO";
 
-  // 시간 계산
+  // 시간 및 진행도 계산 (Step 7 로직 유지)
   const hasTimeRange = !!(task.startTime && task.endTime);
   let remainingSeconds = 0;
   let totalDurationSeconds = 0;
@@ -98,16 +98,6 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
     return "bg-accent";
   };
 
-  // 총 예정 시간 표시
-  const formatDuration = () => {
-    if (!totalDurationSeconds) return "";
-    const h = Math.floor(totalDurationSeconds / 3600);
-    const m = Math.floor((totalDurationSeconds % 3600) / 60);
-    if (h > 0 && m > 0) return `${h}시간 ${m}분`;
-    if (h > 0) return `${h}시간`;
-    return `${m}분`;
-  };
-
   return (
     <div className={`group relative rounded-2xl border transition-all duration-300 ${
       isActive 
@@ -131,7 +121,9 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
               )}
             </h3>
           </div>
+          
           <div className="flex flex-wrap items-center gap-3">
+            {/* 카테고리 뱃지 */}
             {!task.isPostponed && task.category && (
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${task.categoryColor}`}>
                 {task.category}
@@ -144,7 +136,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
               </span>
             )}
 
-            {/* TO-DO 전용 지능형 뱃지 */}
+            {/* [지능형 엔진] TO-DO 전용 메타데이터 뱃지 */}
             {isTodo && (
               <>
                 {task.priority && (
@@ -168,23 +160,22 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
               </>
             )}
 
+            {/* 시간대 표시 (Step 2~5 로직) */}
             {hasTimeRange && (
               <div className={`flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider ${task.isPostponed && task.postponedCount >= 3 ? "text-inherit" : "text-accent"}`}>
                 <Clock size={12} />
                 {task.startTime} ~ {task.endTime}
               </div>
             )}
-            {hasTimeRange && !isActive && (
-              <span className="text-[11px] font-medium text-secondary">
-                ({formatDuration()})
-              </span>
-            )}
+
             {task.dueDate && (
               <div className="flex items-center gap-1 text-[11px] font-bold text-red-500 uppercase tracking-wider">
                 <Clock size={12} />
                 {task.dueDate}
               </div>
             )}
+
+            {/* 일시정지 중일 때 소요 시간 표시 */}
             {!isActive && task.elapsedTime > 0 && (
               <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/20 px-2 py-0.5 rounded uppercase tracking-wider">
                 <Hourglass size={12} />
@@ -194,7 +185,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
           </div>
         </div>
 
-        {/* 활성 타임워치 / 타이머 */}
+        {/* 활성 타임워치 / 타이머 (Step 7 UI 완성본) */}
         {isActive && (
           <div className="flex flex-col items-center gap-3">
             <div className="flex items-center gap-6 bg-card-bg border border-border rounded-2xl py-4 px-6 shadow-sm">
@@ -243,6 +234,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
               </div>
             </div>
 
+            {/* 실시간 프로그레스 바 (Step 7 핵심 기능) */}
             {hasTimeRange && (
               <div className="w-full">
                 <div className="w-full h-2 bg-sidebar-bg rounded-full overflow-hidden">
@@ -263,7 +255,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
           </div>
         )}
 
-        {/* 비활성 상태 액션 */}
+        {/* 비활성 상태 액션 (Step 4 UI 및 지능형 엔진 통합) */}
         {!isActive && (
           <div className="flex items-center gap-2">
             {!task.isPostponed && (

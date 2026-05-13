@@ -10,6 +10,8 @@ import { getAllCategories, categoryToColorClass } from "@/lib/categoryEngine";
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
+  // [Step 6] 팀원이 구현한 수동 시간 설정 필드
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [showTimePicker, setShowTimePicker] = useState(false);
@@ -23,17 +25,16 @@ export default function Home() {
 
     setIsAnalyzing(true);
     try {
-      // 1. AI 엔진 호출
+      // [지능형 엔진] 1. AI 분석 수행
       const result = await parseWithAI(trimmed);
 
       if (result.action === "CREATE_TASK") {
         const { payload } = result;
         
-        // 카테고리 정보 가져오기 (컬러 매핑용)
         const categories = getAllCategories();
         const categoryInfo = categories.find(c => c.name === payload.category) || categories[categories.length - 1];
 
-        // 2. 상태 업데이트
+        // 2. 상태 업데이트 (AI 파싱값 + 팀원의 수동 입력값 병합)
         dispatch({
           type: "ADD_TASK",
           payload: {
@@ -46,7 +47,7 @@ export default function Home() {
             difficulty: payload.difficulty,
             estimatedTime: payload.estimatedTime,
             priority: payload.priority,
-            // 수동 설정이 있으면 그것을 우선, 없으면 AI 파싱 결과 사용
+            // [통합 로직] 수동 설정이 있으면 우선순위, 없으면 AI가 찾은 시간 사용
             startTime: startTime || payload.startTime,
             endTime: endTime || payload.endTime,
           },
@@ -56,6 +57,7 @@ export default function Home() {
         dispatch({ type: "SET_THEME", payload: { theme: targetTheme } });
       }
 
+      // 입력 초기화
       setInputValue("");
       setStartTime("");
       setEndTime("");
@@ -63,7 +65,7 @@ export default function Home() {
       inputRef.current?.focus();
     } catch (error) {
       console.error("AI Parsing Error:", error);
-      // Fallback: 로컬 정규식 엔진 사용
+      // Fallback: 로컬 정규식 기반 파싱 (Step 2~5 로직 활용)
       addTask(trimmed, startTime, endTime);
       setInputValue("");
       setStartTime("");
@@ -116,7 +118,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* 현재 진행 중인 작업 */}
+      {/* 현재 진행 중인 작업 (팀원 UI 유지) */}
       {activeTask && (
         <section className="space-y-6">
           <h3 className="text-sm font-bold text-secondary uppercase tracking-widest">현재 진행 중인 작업</h3>
@@ -131,7 +133,7 @@ export default function Home() {
         </section>
       )}
 
-      {/* 다음 작업 목록 */}
+      {/* 다음 작업 목록 (팀원 UI 유지) */}
       {pendingTasks.length > 0 && (
         <section className="space-y-4">
           <h3 className="text-sm font-bold text-secondary uppercase tracking-widest">
@@ -167,9 +169,8 @@ export default function Home() {
         </div>
       )}
 
-      {/* 입력 영역 */}
+      {/* [통합 입력 영역] AI 분석 + [Step 6] 수동 시간 설정 */}
       <div className="bg-card-bg border border-border rounded-2xl shadow-sm overflow-hidden transition-all focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent">
-        {/* 할일 이름 입력 */}
         <div className="relative group">
           <div className="absolute left-6 top-1/2 -translate-y-1/2 text-secondary group-focus-within:text-accent transition-colors">
             {isAnalyzing ? <Loader2 size={20} className="animate-spin text-accent" /> : <Plus size={20} />}
@@ -203,7 +204,7 @@ export default function Home() {
           )}
         </div>
 
-        {/* 시간대 설정 패널 (수동 설정용) */}
+        {/* [Step 6] 팀원의 시간대 설정 패널 (수동 설정용) */}
         {showTimePicker && !isAnalyzing && (
           <div className="border-t border-border px-6 py-4 bg-sidebar-bg/30 animate-in slide-in-from-top-2 duration-200">
             <div className="flex items-center gap-6">
