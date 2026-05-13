@@ -4,18 +4,59 @@ import React, { useState, useRef } from "react";
 import { ListFilter, LayoutGrid, Lightbulb, MoreHorizontal, Plus, Inbox } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { useTaskContext } from "@/context/TaskContext";
+import { parseWithAI } from "@/lib/api";
+import { getAllCategories, categoryToColorClass } from "@/lib/categoryEngine";
 
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const { state, dispatch, addTask, getFilteredTasks, getActiveTask } = useTaskContext();
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
-    addTask(trimmed);
-    setInputValue("");
-    inputRef.current?.focus();
+
+    try {
+      // 1. AI 엔진 호출
+      const result = await parseWithAI(trimmed);
+
+      if (result.action === "CREATE_TASK") {
+        const { payload } = result;
+        
+        // 카테고리 정보 가져오기 (컬러 매핑용)
+        const categories = getAllCategories();
+        const categoryInfo = categories.find(c => c.name === payload.category) || categories[categories.length - 1];
+
+        // 2. 상태 업데이트
+        dispatch({
+          type: "ADD_TASK",
+          payload: {
+            title: payload.title || trimmed,
+            category: categoryInfo.name,
+            categoryColor: categoryToColorClass(categoryInfo),
+            isImportant: payload.isImportant || false,
+            dueDate: payload.dueDate,
+            entryType: payload.entryType || "TODO",
+            difficulty: payload.difficulty,
+            estimatedTime: payload.estimatedTime,
+            priority: payload.priority,
+            startTime: payload.startTime,
+            endTime: payload.endTime,
+          },
+        });
+      } else if (result.action === "CHANGE_THEME") {
+        // TODO: Step 8에서 테마 제어 로직 구현 예정
+        console.log("Theme change requested:", result.payload.theme);
+      }
+
+      setInputValue("");
+      inputRef.current?.focus();
+    } catch (error) {
+      console.error("AI Parsing Error:", error);
+      // Fallback: 에러 발생 시 기존 로컬 방식으로 추가 (선택 사항)
+      addTask(trimmed);
+      setInputValue("");
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
