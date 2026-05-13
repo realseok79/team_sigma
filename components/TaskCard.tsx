@@ -48,6 +48,11 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
             <h3 className={`font-semibold transition-colors ${isActive ? "text-xl text-foreground" : "text-[16px] text-foreground/90"}`}>
               {task.title}
             </h3>
+            {!isTodo && task.startTime && (
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-sidebar-bg text-accent uppercase tracking-wider">
+                🕒 {task.startTime} {task.endTime ? `- ${task.endTime}` : ""}
+              </span>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-3">
             {task.category && (
