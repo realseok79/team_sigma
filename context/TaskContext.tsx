@@ -39,6 +39,10 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         dueDate: action.payload.dueDate,
+        startTime: action.payload.startTime,
+        endTime: action.payload.endTime,
+        postponedCount: 0,
+        isPostponed: false,
       };
       return { ...state, tasks: [...state.tasks, newTask] };
     }
@@ -114,6 +118,22 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
 
     case "SET_SEARCH": {
       return { ...state, searchQuery: action.payload.query };
+    }
+
+    case "POSTPONE_TASK": {
+      const updatedTasks = state.tasks.map((t) => {
+        if (t.id === action.payload.id) {
+          return {
+            ...t,
+            postponedCount: Math.min(t.postponedCount + 1, 5),
+            isPostponed: true,
+            status: "pending" as const,
+            lastPostponedAt: new Date().toISOString(),
+          };
+        }
+        return t;
+      });
+      return { ...state, tasks: updatedTasks };
     }
 
     case "TICK_TIMER": {
@@ -209,6 +229,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           categoryColor: categoryToColorClass(parsed.category),
           isImportant: parsed.isImportant,
           dueDate: parsed.dueDate,
+          startTime: parsed.startTime,
+          endTime: parsed.endTime,
         },
       });
     },
@@ -216,13 +238,30 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getFilteredTasks = useCallback(() => {
-    if (!state.searchQuery) return state.tasks;
-    const q = state.searchQuery.toLowerCase();
-    return state.tasks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q)
-    );
+    let tasks = [...state.tasks];
+    
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      tasks = tasks.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.category.toLowerCase().includes(q)
+      );
+    }
+
+    // 정렬 로직: 미뤄진 일(isPostponed)을 최상단으로, 그 다음 중요도, 그 다음 생성일순
+    return tasks.sort((a, b) => {
+      if (a.isPostponed && !b.isPostponed) return -1;
+      if (!a.isPostponed && b.isPostponed) return 1;
+      if (a.isPostponed && b.isPostponed) {
+        return b.postponedCount - a.postponedCount; // 많이 미뤄진 순서대로? 아니면 적게? 일단 많이 미뤄진걸 위로
+      }
+      
+      if (a.isImportant && !b.isImportant) return -1;
+      if (!a.isImportant && b.isImportant) return 1;
+      
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }, [state.tasks, state.searchQuery]);
 
   const getImportantTasks = useCallback(() => {
