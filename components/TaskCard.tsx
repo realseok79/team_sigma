@@ -185,6 +185,12 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
                 {task.dueDate}
               </div>
             )}
+            {!isActive && task.elapsedTime > 0 && (
+              <div className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 dark:text-emerald-400 dark:bg-emerald-900/20 px-2 py-0.5 rounded uppercase tracking-wider">
+                <Hourglass size={12} />
+                진행 시간: {formatTimeDisplay(task.elapsedTime)}
+              </div>
+            )}
           </div>
         </div>
 
