@@ -27,8 +27,7 @@ function timeStringToDate(timeStr: string): Date {
 /**
  * 초를 HH:MM:SS 형식으로 변환
  */
-function formatCountdown(totalSeconds: number): string {
-  if (totalSeconds <= 0) return "00:00:00";
+function formatTimeDisplay(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
@@ -189,31 +188,36 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
           </div>
         </div>
 
-        {/* 활성 타임워치 */}
-        {isActive && hasTimeRange && (
+        {/* 활성 타임워치 / 타이머 */}
+        {isActive && (
           <div className="flex flex-col items-center gap-3">
             <div className="flex items-center gap-6 bg-card-bg border border-border rounded-2xl py-4 px-6 shadow-sm">
               <div className="flex flex-col items-center">
                 <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">
-                  {isOvertime ? "시간 초과" : "남은 시간"}
+                  {hasTimeRange ? (isOvertime ? "시간 초과" : "남은 시간") : "소요 시간"}
                 </span>
                 <span className={`font-digital text-5xl tracking-widest min-w-[220px] text-center ${
                   isOvertime 
                     ? "text-red-500" 
-                    : remainingSeconds < 300 
+                    : hasTimeRange && remainingSeconds < 300 
                       ? "text-orange-500" 
                       : "text-foreground"
                 }`}>
-                  {isOvertime ? "00:00:00" : formatCountdown(remainingSeconds)}
+                  {hasTimeRange 
+                    ? (isOvertime ? "00:00:00" : formatTimeDisplay(remainingSeconds))
+                    : formatTimeDisplay(task.elapsedTime)
+                  }
                 </span>
               </div>
 
-              <div className="flex flex-col items-center border-l border-border pl-6">
-                <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">예정 시간</span>
-                <span className="text-lg font-bold text-foreground/70">
-                  {task.startTime} ~ {task.endTime}
-                </span>
-              </div>
+              {hasTimeRange && (
+                <div className="flex flex-col items-center border-l border-border pl-6">
+                  <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">예정 시간</span>
+                  <span className="text-lg font-bold text-foreground/70">
+                    {task.startTime} ~ {task.endTime}
+                  </span>
+                </div>
+              )}
 
               <div className="flex items-center gap-2 border-l border-border pl-6">
                 <button 
@@ -233,21 +237,23 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
               </div>
             </div>
 
-            <div className="w-full">
-              <div className="w-full h-2 bg-sidebar-bg rounded-full overflow-hidden">
-                <div 
-                  className={`h-full rounded-full transition-all duration-1000 ease-linear ${getProgressColor()}`}
-                  style={{ width: `${progressPercent}%` }}
-                />
+            {hasTimeRange && (
+              <div className="w-full">
+                <div className="w-full h-2 bg-sidebar-bg rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-1000 ease-linear ${getProgressColor()}`}
+                    style={{ width: `${progressPercent}%` }}
+                  />
+                </div>
+                <div className="flex justify-between mt-1">
+                  <span className="text-[10px] font-bold text-secondary">{task.startTime}</span>
+                  <span className={`text-[10px] font-bold ${isOvertime ? "text-red-500" : "text-secondary"}`}>
+                    {isOvertime ? "종료됨" : `${Math.round(progressPercent)}%`}
+                  </span>
+                  <span className="text-[10px] font-bold text-secondary">{task.endTime}</span>
+                </div>
               </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-[10px] font-bold text-secondary">{task.startTime}</span>
-                <span className={`text-[10px] font-bold ${isOvertime ? "text-red-500" : "text-secondary"}`}>
-                  {isOvertime ? "종료됨" : `${Math.round(progressPercent)}%`}
-                </span>
-                <span className="text-[10px] font-bold text-secondary">{task.endTime}</span>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
