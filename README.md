@@ -4,13 +4,19 @@ Flow To-Do is a premium, advanced productivity timer and task management applica
 
 ## 🚀 Features
 
-- **Intelligent Classification**: Automatically classifies entries into **TO-DO** (task-oriented) or **PLAN** (time-oriented).
-- **Automatic Parameter Extraction**:
-  - **TO-DO**: Extracts difficulty (1-5), estimated time (e.g., "30분"), and priority (high/mid/low).
-  - **PLAN**: Detects time blocks (e.g., "2시부터 4시까지") and extracts start/end times.
-- **Deep Work Timer**: Integrated digital timer for focused task execution with state persistence.
-- **Modern UI/UX**: Stunning aesthetics with status-specific badges and premium dark mode support.
-- **Natural Language Analysis**: Korean keyword-based category and importance detection.
+- **LLM-Powered Intelligence**: Uses Gemini AI to understand natural language and extract complex task metadata.
+- **Dynamic Action Dispatching**:
+  - **CREATE_TASK**: Automatically classifies into **TO-DO** or **PLAN** with full parameter extraction (Difficulty, Priority, Time blocks).
+  - **CHANGE_THEME**: Responds to system commands like "어둡게 해줘" or "라이트 모드로 변경" to control the UI.
+- **Real-time AI Analysis**: Visual feedback with loading states while the AI analyzes user input.
+- **Global State & Theme Management**: Persistent task state and system-wide dark mode support.
+- **Modern UI/UX**: Premium aesthetics with status-specific badges and smooth transitions.
+
+## 💡 Example Commands
+
+- *"중요! 내일 오후 2시 발표 준비하기"* → 프레젠테이션 카테고리, 중요도 '상', TO-DO 추가.
+- *"오후 3시부터 5시까지 미팅"* → PLAN 모드, 시작/종료 시간 자동 설정.
+- *"눈부셔 다크모드"* → 시스템 테마 즉시 변경.
 
 ## 🛠 Tech Stack
 
