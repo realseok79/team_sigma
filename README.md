@@ -1,4 +1,4 @@
-# Flow To-Do
+# Team-Sigma (planner + To do list)
 
 Flow To-Do is a premium, advanced productivity timer and task management application built with Next.js and Tailwind CSS. It features a sleek, modern UI with integrated deep work timers, task history, and native dark mode support.
 
