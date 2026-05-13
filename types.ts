@@ -1,8 +1,10 @@
 // ==============================
-// Flow To-Do: Core Type Definitions
+// Team-Sigma: Core Type Definitions
 // ==============================
 
 export type TaskStatus = 'pending' | 'active' | 'paused' | 'completed';
+export type EntryType = 'TODO' | 'PLAN';
+export type PriorityLevel = 'high' | 'medium' | 'low';
 
 export interface Task {
   id: string;
@@ -15,6 +17,14 @@ export interface Task {
   completedAt?: string;    // ISO string
   elapsedTime: number;     // 초 단위 누적 시간
   dueDate?: string;        // "오늘까지", "내일까지" 등
+  
+  // 지능형 분류 신규 필드
+  entryType: EntryType;
+  difficulty?: number;     // 1~5
+  estimatedTime?: number;  // 분 단위
+  priority?: PriorityLevel;
+  startTime?: string;      // HH:mm 형식
+  endTime?: string;        // HH:mm 형식
 }
 
 export interface CategoryInfo {
@@ -30,6 +40,14 @@ export interface ParsedInput {
   category: CategoryInfo;
   isImportant: boolean;
   dueDate?: string;
+  
+  // 파싱 결과 확장
+  entryType: EntryType;
+  difficulty?: number;
+  estimatedTime?: number;
+  priority?: PriorityLevel;
+  startTime?: string;
+  endTime?: string;
 }
 
 // Context state
