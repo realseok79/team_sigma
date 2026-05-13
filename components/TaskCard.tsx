@@ -3,7 +3,7 @@
 import React from "react";
 import { Play, Pause, Clock, Star, Trash2 } from "lucide-react";
 import { Task } from "@/types";
-import { formatTime } from "@/hooks/useTimer";
+import { useTaskContext } from "@/context/TaskContext";
 
 interface TaskCardProps {
   task: Task;
@@ -14,9 +14,57 @@ interface TaskCardProps {
   onToggleImportant: (id: string) => void;
 }
 
+/**
+ * 시간 문자열 "HH:MM"을 오늘 날짜 기준 Date로 변환
+ */
+function timeStringToDate(timeStr: string): Date {
+  const [h, m] = timeStr.split(":").map(Number);
+  const d = new Date();
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+/**
+ * 초를 HH:MM:SS 형식으로 변환
+ */
+function formatCountdown(totalSeconds: number): string {
+  if (totalSeconds <= 0) return "00:00:00";
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds]
+    .map((v) => v.toString().padStart(2, "0"))
+    .join(":");
+}
+
 export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggleImportant }: TaskCardProps) {
+  const { currentTime } = useTaskContext();
   const isActive = task.status === "active";
   const isPaused = task.status === "paused";
+
+  // 시간 계산
+  const hasTimeRange = !!(task.startTime && task.endTime);
+  let remainingSeconds = 0;
+  let totalDurationSeconds = 0;
+  let progressPercent = 0;
+  let isOvertime = false;
+
+  if (hasTimeRange) {
+    const startDate = timeStringToDate(task.startTime!);
+    const endDate = timeStringToDate(task.endTime!);
+    totalDurationSeconds = Math.max(0, (endDate.getTime() - startDate.getTime()) / 1000);
+    remainingSeconds = Math.max(0, Math.floor((endDate.getTime() - currentTime.getTime()) / 1000));
+
+    if (currentTime >= endDate) {
+      isOvertime = true;
+      progressPercent = 100;
+    } else if (currentTime >= startDate) {
+      const elapsed = (currentTime.getTime() - startDate.getTime()) / 1000;
+      progressPercent = Math.min(100, (elapsed / totalDurationSeconds) * 100);
+    } else {
+      progressPercent = 0;
+    }
+  }
 
   const getPostponedColor = (count: number) => {
     switch (count) {
@@ -30,6 +78,24 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
   };
 
   const postponedStyle = task.isPostponed ? getPostponedColor(task.postponedCount) : "";
+
+  // 프로그레스 바 색상
+  const getProgressColor = () => {
+    if (isOvertime) return "bg-red-500";
+    if (progressPercent > 80) return "bg-orange-500";
+    if (progressPercent > 50) return "bg-yellow-500";
+    return "bg-accent";
+  };
+
+  // 총 예정 시간 표시
+  const formatDuration = () => {
+    if (!totalDurationSeconds) return "";
+    const h = Math.floor(totalDurationSeconds / 3600);
+    const m = Math.floor((totalDurationSeconds % 3600) / 60);
+    if (h > 0 && m > 0) return `${h}시간 ${m}분`;
+    if (h > 0) return `${h}시간`;
+    return `${m}분`;
+  };
 
   return (
     <div className={`group relative rounded-2xl border transition-all duration-300 ${
@@ -54,7 +120,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
               )}
             </h3>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             {!task.isPostponed && task.category && (
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${task.categoryColor}`}>
                 {task.category}
@@ -65,11 +131,16 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
                 미뤄진 작업
               </span>
             )}
-            {(task.startTime || task.endTime) && (
+            {hasTimeRange && (
               <div className={`flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider ${task.isPostponed && task.postponedCount >= 3 ? "text-inherit" : "text-accent"}`}>
                 <Clock size={12} />
-                {task.startTime && task.endTime ? `${task.startTime} ~ ${task.endTime}` : (task.startTime || task.endTime)}
+                {task.startTime} ~ {task.endTime}
               </div>
+            )}
+            {hasTimeRange && !isActive && (
+              <span className="text-[11px] font-medium text-secondary">
+                ({formatDuration()})
+              </span>
             )}
             {task.dueDate && (
               <div className="flex items-center gap-1 text-[11px] font-bold text-red-500 uppercase tracking-wider">
@@ -77,39 +148,71 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
                 {task.dueDate}
               </div>
             )}
-            {isPaused && task.elapsedTime > 0 && (
-              <div className="flex items-center gap-1 text-[11px] font-medium text-secondary">
-                <Clock size={12} />
-                {formatTime(task.elapsedTime)}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* 활성 타이머 */}
-        {isActive && (
-          <div className="flex items-center gap-8 bg-card-bg border border-border rounded-full py-2 px-6 shadow-sm">
-            <div className="flex flex-col items-center">
-              <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">경과 시간</span>
-              <span className="font-digital text-5xl tracking-widest text-foreground min-w-[200px] text-center">
-                {formatTime(task.elapsedTime)}
-              </span>
+        {/* 활성 타임워치 */}
+        {isActive && hasTimeRange && (
+          <div className="flex flex-col items-center gap-3">
+            <div className="flex items-center gap-6 bg-card-bg border border-border rounded-2xl py-4 px-6 shadow-sm">
+              {/* 남은 시간 표시 */}
+              <div className="flex flex-col items-center">
+                <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">
+                  {isOvertime ? "시간 초과" : "남은 시간"}
+                </span>
+                <span className={`font-digital text-5xl tracking-widest min-w-[220px] text-center ${
+                  isOvertime 
+                    ? "text-red-500" 
+                    : remainingSeconds < 300 
+                      ? "text-orange-500" 
+                      : "text-foreground"
+                }`}>
+                  {isOvertime ? "00:00:00" : formatCountdown(remainingSeconds)}
+                </span>
+              </div>
+
+              {/* 시간대 표시 */}
+              <div className="flex flex-col items-center border-l border-border pl-6">
+                <span className="text-[10px] font-bold text-secondary uppercase tracking-widest mb-1">예정 시간</span>
+                <span className="text-lg font-bold text-foreground/70">
+                  {task.startTime} ~ {task.endTime}
+                </span>
+              </div>
+
+              {/* 버튼들 */}
+              <div className="flex items-center gap-2 border-l border-border pl-6">
+                <button 
+                  onClick={() => onPause(task.id)}
+                  title="일시정지"
+                  className="w-10 h-10 rounded-full bg-sidebar-bg flex items-center justify-center text-foreground hover:bg-border transition-colors"
+                >
+                  <Pause size={18} fill="currentColor" />
+                </button>
+                <button 
+                  onClick={() => onComplete(task.id)}
+                  title="끝냄"
+                  className="px-5 h-10 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm hover:bg-accent/90 transition-colors"
+                >
+                  끝냄
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <button 
-                onClick={() => onPause(task.id)}
-                title="일시정지"
-                className="w-10 h-10 rounded-full bg-sidebar-bg flex items-center justify-center text-foreground hover:bg-border transition-colors"
-              >
-                <Pause size={18} fill="currentColor" />
-              </button>
-              <button 
-                onClick={() => onComplete(task.id)}
-                title="끝냄"
-                className="px-4 h-10 rounded-full bg-accent text-white flex items-center justify-center font-bold text-sm hover:bg-accent/90 transition-colors"
-              >
-                끝냄
-              </button>
+
+            {/* 프로그레스 바 */}
+            <div className="w-full">
+              <div className="w-full h-2 bg-sidebar-bg rounded-full overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-1000 ease-linear ${getProgressColor()}`}
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[10px] font-bold text-secondary">{task.startTime}</span>
+                <span className={`text-[10px] font-bold ${isOvertime ? "text-red-500" : "text-secondary"}`}>
+                  {isOvertime ? "종료됨" : `${Math.round(progressPercent)}%`}
+                </span>
+                <span className="text-[10px] font-bold text-secondary">{task.endTime}</span>
+              </div>
             </div>
           </div>
         )}
