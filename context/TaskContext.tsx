@@ -39,6 +39,12 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         dueDate: action.payload.dueDate,
+        entryType: action.payload.entryType,
+        difficulty: action.payload.difficulty,
+        estimatedTime: action.payload.estimatedTime,
+        priority: action.payload.priority,
+        startTime: action.payload.startTime,
+        endTime: action.payload.endTime,
       };
       return { ...state, tasks: [...state.tasks, newTask] };
     }
@@ -209,6 +215,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           categoryColor: categoryToColorClass(parsed.category),
           isImportant: parsed.isImportant,
           dueDate: parsed.dueDate,
+          entryType: parsed.entryType,
+          difficulty: parsed.difficulty,
+          estimatedTime: parsed.estimatedTime,
+          priority: parsed.priority,
+          startTime: parsed.startTime,
+          endTime: parsed.endTime,
         },
       });
     },
