@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle } from "lucide-react";
+import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle } from "lucide-center";
 import { Task } from "@/types";
 import { useTaskContext } from "@/context/TaskContext";
 
