@@ -71,12 +71,22 @@ export default function HistoryPage() {
                           <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${item.categoryColor}`}>
                             {item.category}
                           </span>
+                          {item.startTime && item.endTime && (
+                            <span className="text-[11px] font-bold text-accent px-2 py-0.5 rounded bg-accent/10">
+                              {item.startTime} ~ {item.endTime}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-12">
                       <div className="text-right">
+                        {item.startTime && item.endTime && (
+                          <div className="text-sm font-bold text-foreground/70 mb-1">
+                            {item.startTime} ~ {item.endTime}
+                          </div>
+                        )}
                         <div className="font-digital text-4xl text-foreground/90 tracking-tight">
                           {formatTime(item.elapsedTime)}
                         </div>

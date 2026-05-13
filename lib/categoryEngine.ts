@@ -46,6 +46,7 @@ const DUE_PATTERNS = [
 const TIME_RANGE_PATTERN = /(\d{1,2})시(?:\s*(\d{1,2})분)?\s*(?:부터|~)\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/;
 const TIME_SINGLE_PATTERN = /(\d{1,2})시(?:\s*(\d{1,2})분)?/;
 const DIGITAL_TIME_PATTERN = /(\d{1,2}):(\d{2})/;
+const DIGITAL_RANGE_PATTERN = /(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/;
 
 function formatTime(h: string, m: string = '00'): string {
   return `${h.padStart(2, '0')}:${m.padStart(2, '0')}`;
@@ -86,19 +87,27 @@ export function parseTaskInput(input: string): ParsedInput {
   }
 
   // 2. PLAN 모드 시간 추출 (시작/종료 범위 우선)
-  const rangeMatch = cleanedTitle.match(TIME_RANGE_PATTERN);
-  if (rangeMatch) {
+  const digitalRangeMatch = cleanedTitle.match(DIGITAL_RANGE_PATTERN);
+  if (digitalRangeMatch) {
     entryType = 'PLAN';
-    startTime = formatTime(rangeMatch[1], rangeMatch[2]);
-    endTime = formatTime(rangeMatch[3], rangeMatch[4]);
-    cleanedTitle = cleanedTitle.replace(TIME_RANGE_PATTERN, '').trim();
+    startTime = digitalRangeMatch[1];
+    endTime = digitalRangeMatch[2];
+    cleanedTitle = cleanedTitle.replace(DIGITAL_RANGE_PATTERN, '').trim();
   } else {
-    // 단일 시간 패턴
-    const singleMatch = cleanedTitle.match(TIME_SINGLE_PATTERN) || cleanedTitle.match(DIGITAL_TIME_PATTERN);
-    if (singleMatch) {
+    const rangeMatch = cleanedTitle.match(TIME_RANGE_PATTERN);
+    if (rangeMatch) {
       entryType = 'PLAN';
-      startTime = formatTime(singleMatch[1], singleMatch[2]);
-      cleanedTitle = cleanedTitle.replace(singleMatch[0], '').trim();
+      startTime = formatTime(rangeMatch[1], rangeMatch[2]);
+      endTime = formatTime(rangeMatch[3], rangeMatch[4]);
+      cleanedTitle = cleanedTitle.replace(TIME_RANGE_PATTERN, '').trim();
+    } else {
+      // 단일 시간 패턴
+      const singleMatch = cleanedTitle.match(TIME_SINGLE_PATTERN) || cleanedTitle.match(DIGITAL_TIME_PATTERN);
+      if (singleMatch) {
+        entryType = 'PLAN';
+        startTime = formatTime(singleMatch[1], singleMatch[2]);
+        cleanedTitle = cleanedTitle.replace(singleMatch[0], '').trim();
+      }
     }
   }
 
@@ -108,7 +117,7 @@ export function parseTaskInput(input: string): ParsedInput {
   let priority: ParsedInput['priority'] = 'medium';
 
   if (entryType === 'TODO') {
-    // 예상 시간 추출 (예: 30분, 1시간, 2.5시간)
+    // 예상 시간 추출
     const hourMatch = cleanedTitle.match(/(\d+(?:\.\d+)?)\s*시간/);
     const minMatch = cleanedTitle.match(/(\d+)\s*분/);
     
@@ -131,7 +140,7 @@ export function parseTaskInput(input: string): ParsedInput {
     if (difficulty) {
       cleanedTitle = cleanedTitle.replace(/매우\s*어려운|극악|어려운|복잡한|힘든|보통|일반적인|매우\s*쉬운|쉬운|단순한|금방|간단한/g, '').trim();
     } else {
-      difficulty = 3; // 기본값
+      difficulty = 3;
     }
 
     // 우선순위 매핑

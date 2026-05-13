@@ -43,12 +43,18 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         createdAt: new Date().toISOString(),
         elapsedTime: 0,
         dueDate: action.payload.dueDate,
+        
+        // 지능형 분류 및 파싱 필드
         entryType: action.payload.entryType,
         difficulty: action.payload.difficulty,
         estimatedTime: action.payload.estimatedTime,
         priority: action.payload.priority,
         startTime: action.payload.startTime,
         endTime: action.payload.endTime,
+
+        // 연기 및 상태 필드 (팀원 추가)
+        postponedCount: 0,
+        isPostponed: false,
       };
       return { ...state, tasks: [...state.tasks, newTask] };
     }
@@ -126,6 +132,22 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
       return { ...state, searchQuery: action.payload.query };
     }
 
+    case "POSTPONE_TASK": {
+      const updatedTasks = state.tasks.map((t) => {
+        if (t.id === action.payload.id) {
+          return {
+            ...t,
+            postponedCount: Math.min(t.postponedCount + 1, 5),
+            isPostponed: true,
+            status: "pending" as const,
+            lastPostponedAt: new Date().toISOString(),
+          };
+        }
+        return t;
+      });
+      return { ...state, tasks: updatedTasks };
+    }
+
     case "TICK_TIMER": {
       if (!state.activeTaskId) return state;
       const updatedTasks = state.tasks.map((t) =>
@@ -149,7 +171,8 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
 interface TaskContextType {
   state: TaskState;
   dispatch: React.Dispatch<TaskAction>;
-  addTask: (input: string) => void;
+  addTask: (input: string, startTime?: string, endTime?: string) => void;
+  currentTime: Date;
   getFilteredTasks: () => Task[];
   getImportantTasks: () => Task[];
   getActiveTask: () => Task | undefined;
@@ -161,6 +184,7 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 // Provider
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(taskReducer, initialState);
+  const [currentTime, setCurrentTime] = React.useState(new Date());
 
   // localStorage에서 상태 복원 (마운트 시)
   useEffect(() => {
@@ -172,7 +196,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         const tasksWithPausedActive = (parsed.tasks || []).map((t) => ({
           ...t,
           status: (t.status === "active" ? "paused" : t.status) as any,
-          entryType: t.entryType || "TODO", // 구 버전 데이터 호환성
+          entryType: t.entryType || "TODO", 
         }));
         dispatch({
           type: "LOAD_STATE",
@@ -194,7 +218,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // 테마 적용 (state.theme 변경 시 document 클래스 업데이트)
+  // 테마 적용
   useEffect(() => {
     if (state.theme === "dark") {
       document.documentElement.classList.add("dark");
@@ -212,12 +236,13 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state]);
 
-  // 타이머 인터벌
+  // 매초 현재 시각을 갱신 (타임워치용)
   useEffect(() => {
-    if (!state.activeTaskId) return;
-
     const interval = setInterval(() => {
-      dispatch({ type: "TICK_TIMER" });
+      setCurrentTime(new Date());
+      if (state.activeTaskId) {
+        dispatch({ type: "TICK_TIMER" });
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -225,7 +250,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // 편의 함수들
   const addTask = useCallback(
-    (input: string) => {
+    (input: string, explicitStartTime?: string, explicitEndTime?: string) => {
       const parsed = parseTaskInput(input);
       dispatch({
         type: "ADD_TASK",
@@ -239,8 +264,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           difficulty: parsed.difficulty,
           estimatedTime: parsed.estimatedTime,
           priority: parsed.priority,
-          startTime: parsed.startTime,
-          endTime: parsed.endTime,
+          startTime: explicitStartTime || parsed.startTime,
+          endTime: explicitEndTime || parsed.endTime,
         },
       });
     },
@@ -248,13 +273,30 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getFilteredTasks = useCallback(() => {
-    if (!state.searchQuery) return state.tasks;
-    const q = state.searchQuery.toLowerCase();
-    return state.tasks.filter(
-      (t) =>
-        t.title.toLowerCase().includes(q) ||
-        t.category.toLowerCase().includes(q)
-    );
+    let tasks = [...state.tasks];
+    
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      tasks = tasks.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.category.toLowerCase().includes(q)
+      );
+    }
+
+    // 정렬 로직: 미뤄진 일(isPostponed)을 최상단으로, 그 다음 중요도, 그 다음 생성일순
+    return tasks.sort((a, b) => {
+      if (a.isPostponed && !b.isPostponed) return -1;
+      if (!a.isPostponed && b.isPostponed) return 1;
+      if (a.isPostponed && b.isPostponed) {
+        return b.postponedCount - a.postponedCount; 
+      }
+      
+      if (a.isImportant && !b.isImportant) return -1;
+      if (!a.isImportant && b.isImportant) return 1;
+      
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }, [state.tasks, state.searchQuery]);
 
   const getImportantTasks = useCallback(() => {
@@ -277,6 +319,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         state,
         dispatch,
         addTask,
+        currentTime,
         getFilteredTasks,
         getImportantTasks,
         getActiveTask,

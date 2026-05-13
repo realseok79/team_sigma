@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { ListFilter, LayoutGrid, Lightbulb, MoreHorizontal, Plus, Inbox, Loader2 } from "lucide-react";
+import { ListFilter, LayoutGrid, Lightbulb, MoreHorizontal, Plus, Inbox, Loader2, Clock } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { useTaskContext } from "@/context/TaskContext";
 import { parseWithAI } from "@/lib/api";
@@ -10,6 +10,10 @@ import { getAllCategories, categoryToColorClass } from "@/lib/categoryEngine";
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  
   const inputRef = useRef<HTMLInputElement>(null);
   const { state, dispatch, addTask, getFilteredTasks, getActiveTask } = useTaskContext();
 
@@ -42,23 +46,29 @@ export default function Home() {
             difficulty: payload.difficulty,
             estimatedTime: payload.estimatedTime,
             priority: payload.priority,
-            startTime: payload.startTime,
-            endTime: payload.endTime,
+            // 수동 설정이 있으면 그것을 우선, 없으면 AI 파싱 결과 사용
+            startTime: startTime || payload.startTime,
+            endTime: endTime || payload.endTime,
           },
         });
       } else if (result.action === "CHANGE_THEME") {
-        // AI가 제안한 테마로 변경
         const targetTheme = result.payload.theme || "light";
         dispatch({ type: "SET_THEME", payload: { theme: targetTheme } });
       }
 
       setInputValue("");
+      setStartTime("");
+      setEndTime("");
+      setShowTimePicker(false);
       inputRef.current?.focus();
     } catch (error) {
       console.error("AI Parsing Error:", error);
-      // Fallback: 에러 발생 시 기존 로컬 방식으로 추가 (선택 사항)
-      addTask(trimmed);
+      // Fallback: 로컬 정규식 엔진 사용
+      addTask(trimmed, startTime, endTime);
       setInputValue("");
+      setStartTime("");
+      setEndTime("");
+      setShowTimePicker(false);
     } finally {
       setIsAnalyzing(false);
     }
@@ -157,28 +167,95 @@ export default function Home() {
         </div>
       )}
 
-      {/* 입력 필드 */}
-      <div className="relative group">
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-secondary group-focus-within:text-accent transition-colors">
-          {isAnalyzing ? <Loader2 size={20} className="animate-spin text-accent" /> : <Plus size={20} />}
+      {/* 입력 영역 */}
+      <div className="bg-card-bg border border-border rounded-2xl shadow-sm overflow-hidden transition-all focus-within:ring-2 focus-within:ring-accent/20 focus-within:border-accent">
+        {/* 할일 이름 입력 */}
+        <div className="relative group">
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-secondary group-focus-within:text-accent transition-colors">
+            {isAnalyzing ? <Loader2 size={20} className="animate-spin text-accent" /> : <Plus size={20} />}
+          </div>
+          <input 
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              if (e.target.value.trim() && !showTimePicker) {
+                setShowTimePicker(true);
+              }
+            }}
+            onFocus={() => {
+              if (inputValue.trim()) setShowTimePicker(true);
+            }}
+            onKeyDown={handleKeyDown}
+            disabled={isAnalyzing}
+            placeholder={isAnalyzing ? "AI가 내용을 분석하고 있습니다..." : "새로운 작업을 추가하세요... (예: 중요! 내일 발표 준비하기)"}
+            className="w-full bg-transparent py-5 pl-14 pr-24 focus:outline-none transition-all text-foreground placeholder:text-secondary/60 disabled:opacity-70"
+          />
+          {!showTimePicker && (
+            <button 
+              onClick={handleAddTask}
+              disabled={!inputValue.trim() || isAnalyzing}
+              className="absolute right-6 top-1/2 -translate-y-1/2 bg-accent/10 text-accent font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-accent hover:text-white transition-all disabled:opacity-40"
+            >
+              추가
+            </button>
+          )}
         </div>
-        <input 
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={isAnalyzing}
-          placeholder={isAnalyzing ? "AI가 내용을 분석하고 있습니다..." : "새로운 작업을 추가하세요... (예: 중요! 내일 발표 준비하기)"}
-          className="w-full bg-card-bg border border-border rounded-2xl py-5 pl-14 pr-24 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all shadow-sm disabled:opacity-70"
-        />
-        <button 
-          onClick={handleAddTask}
-          disabled={!inputValue.trim() || isAnalyzing}
-          className="absolute right-6 top-1/2 -translate-y-1/2 bg-accent/10 text-accent font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-accent hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed min-w-[60px] flex justify-center"
-        >
-          {isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : "추가"}
-        </button>
+
+        {/* 시간대 설정 패널 (수동 설정용) */}
+        {showTimePicker && !isAnalyzing && (
+          <div className="border-t border-border px-6 py-4 bg-sidebar-bg/30 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-sm font-bold text-secondary">
+                <Clock size={16} />
+                시간 수동 설정 (선택사항)
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-secondary uppercase tracking-wider">시작</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="bg-card-bg border border-border rounded-lg px-3 py-2 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  />
+                </div>
+                <span className="text-secondary font-bold text-lg">~</span>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-secondary uppercase tracking-wider">종료</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="bg-card-bg border border-border rounded-lg px-3 py-2 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <button
+                onClick={() => {
+                  setShowTimePicker(false);
+                  setStartTime("");
+                  setEndTime("");
+                }}
+                className="text-sm text-secondary hover:text-foreground transition-colors font-medium"
+              >
+                닫기
+              </button>
+              <button 
+                onClick={handleAddTask}
+                disabled={!inputValue.trim() || isAnalyzing}
+                className="bg-accent text-white font-bold text-sm px-6 py-2 rounded-xl hover:bg-accent/90 transition-all flex items-center gap-2"
+              >
+                {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                추가
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

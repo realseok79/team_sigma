@@ -25,6 +25,12 @@ export interface Task {
   priority?: PriorityLevel;
   startTime?: string;      // HH:mm 형식
   endTime?: string;        // HH:mm 형식
+
+  // 팀원 추가 필드 (연기 기능 등)
+  postponedCount: number;  // 0-5
+  isPostponed: boolean;
+  originalDate?: string;   // ISO string of the date it was originally scheduled for
+  lastPostponedAt?: string; // ISO string
 }
 
 export interface CategoryInfo {
@@ -83,7 +89,7 @@ export interface TaskState {
 
 // Context actions
 export type TaskAction =
-  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime'> }
+  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime' | 'postponedCount' | 'isPostponed' | 'originalDate' | 'lastPostponedAt'> }
   | { type: 'DELETE_TASK'; payload: { id: string } }
   | { type: 'START_TASK'; payload: { id: string } }
   | { type: 'PAUSE_TASK'; payload: { id: string } }
@@ -92,4 +98,5 @@ export type TaskAction =
   | { type: 'SET_SEARCH'; payload: { query: string } }
   | { type: 'SET_THEME'; payload: { theme: 'dark' | 'light' } }
   | { type: 'TICK_TIMER' }
+  | { type: 'POSTPONE_TASK'; payload: { id: string } }
   | { type: 'LOAD_STATE'; payload: TaskState };
