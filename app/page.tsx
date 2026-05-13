@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { ListFilter, LayoutGrid, Lightbulb, MoreHorizontal, Plus, Inbox } from "lucide-react";
+import { ListFilter, LayoutGrid, Lightbulb, MoreHorizontal, Plus, Inbox, Loader2 } from "lucide-react";
 import { TaskCard } from "@/components/TaskCard";
 import { useTaskContext } from "@/context/TaskContext";
 import { parseWithAI } from "@/lib/api";
@@ -9,6 +9,7 @@ import { getAllCategories, categoryToColorClass } from "@/lib/categoryEngine";
 
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { state, dispatch, addTask, getFilteredTasks, getActiveTask } = useTaskContext();
 
@@ -16,6 +17,7 @@ export default function Home() {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
 
+    setIsAnalyzing(true);
     try {
       // 1. AI 엔진 호출
       const result = await parseWithAI(trimmed);
@@ -56,11 +58,13 @@ export default function Home() {
       // Fallback: 에러 발생 시 기존 로컬 방식으로 추가 (선택 사항)
       addTask(trimmed);
       setInputValue("");
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !isAnalyzing) {
       e.preventDefault();
       handleAddTask();
     }
@@ -139,7 +143,7 @@ export default function Home() {
       )}
 
       {/* 빈 상태 */}
-      {taskCount === 0 && (
+      {taskCount === 0 && !isAnalyzing && (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-sidebar-bg flex items-center justify-center">
             <Inbox size={32} className="text-secondary" />
@@ -147,7 +151,7 @@ export default function Home() {
           <h3 className="text-lg font-semibold text-foreground/70">할 일이 없습니다</h3>
           <p className="text-sm text-secondary max-w-sm">
             아래 입력창에 할 일을 입력해 보세요.<br />
-            카테고리와 중요도가 자동으로 분류됩니다.
+            AI가 카테고리와 중요도를 자동으로 분류합니다.
           </p>
         </div>
       )}
@@ -155,7 +159,7 @@ export default function Home() {
       {/* 입력 필드 */}
       <div className="relative group">
         <div className="absolute left-6 top-1/2 -translate-y-1/2 text-secondary group-focus-within:text-accent transition-colors">
-          <Plus size={20} />
+          {isAnalyzing ? <Loader2 size={20} className="animate-spin text-accent" /> : <Plus size={20} />}
         </div>
         <input 
           ref={inputRef}
@@ -163,15 +167,16 @@ export default function Home() {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="새로운 작업을 추가하세요... (예: 중요! 내일 발표 준비하기)"
-          className="w-full bg-card-bg border border-border rounded-2xl py-5 pl-14 pr-24 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all shadow-sm"
+          disabled={isAnalyzing}
+          placeholder={isAnalyzing ? "AI가 내용을 분석하고 있습니다..." : "새로운 작업을 추가하세요... (예: 중요! 내일 발표 준비하기)"}
+          className="w-full bg-card-bg border border-border rounded-2xl py-5 pl-14 pr-24 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all shadow-sm disabled:opacity-70"
         />
         <button 
           onClick={handleAddTask}
-          disabled={!inputValue.trim()}
-          className="absolute right-6 top-1/2 -translate-y-1/2 bg-accent/10 text-accent font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-accent hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={!inputValue.trim() || isAnalyzing}
+          className="absolute right-6 top-1/2 -translate-y-1/2 bg-accent/10 text-accent font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-accent hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed min-w-[60px] flex justify-center"
         >
-          추가
+          {isAnalyzing ? <Loader2 size={18} className="animate-spin" /> : "추가"}
         </button>
       </div>
     </div>
