@@ -15,6 +15,12 @@ export interface Task {
   completedAt?: string;    // ISO string
   elapsedTime: number;     // 초 단위 누적 시간
   dueDate?: string;        // "오늘까지", "내일까지" 등
+  startTime?: string;      // "13:00"
+  endTime?: string;        // "15:00"
+  postponedCount: number;  // 0-5
+  isPostponed: boolean;
+  originalDate?: string;   // ISO string of the date it was originally scheduled for
+  lastPostponedAt?: string; // ISO string
 }
 
 export interface CategoryInfo {
@@ -30,6 +36,8 @@ export interface ParsedInput {
   category: CategoryInfo;
   isImportant: boolean;
   dueDate?: string;
+  startTime?: string;
+  endTime?: string;
 }
 
 // Context state
@@ -42,7 +50,7 @@ export interface TaskState {
 
 // Context actions
 export type TaskAction =
-  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime'> }
+  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime' | 'postponedCount' | 'isPostponed' | 'originalDate'> }
   | { type: 'DELETE_TASK'; payload: { id: string } }
   | { type: 'START_TASK'; payload: { id: string } }
   | { type: 'PAUSE_TASK'; payload: { id: string } }
@@ -50,4 +58,5 @@ export type TaskAction =
   | { type: 'TOGGLE_IMPORTANT'; payload: { id: string } }
   | { type: 'SET_SEARCH'; payload: { query: string } }
   | { type: 'TICK_TIMER' }
+  | { type: 'POSTPONE_TASK'; payload: { id: string } }
   | { type: 'LOAD_STATE'; payload: TaskState };
