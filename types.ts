@@ -1,5 +1,6 @@
 // ==============================
 // Team-Sigma: Core Type Definitions
+// [통합본: 지능형 엔진 + 팀원 기능]
 // ==============================
 
 export type TaskStatus = 'pending' | 'active' | 'paused' | 'completed';
@@ -18,7 +19,7 @@ export interface Task {
   elapsedTime: number;     // 초 단위 누적 시간
   dueDate?: string;        // "오늘까지", "내일까지" 등
   
-  // 지능형 분류 신규 필드
+  // [지능형 엔진] 신규 필드
   entryType: EntryType;
   difficulty?: number;     // 1~5
   estimatedTime?: number;  // 분 단위
@@ -26,7 +27,7 @@ export interface Task {
   startTime?: string;      // HH:mm 형식
   endTime?: string;        // HH:mm 형식
 
-  // 팀원 추가 필드 (연기 기능 등)
+  // [팀원 추가 필드] 연기 기능 등
   postponedCount: number;  // 0-5
   isPostponed: boolean;
   originalDate?: string;   // ISO string of the date it was originally scheduled for
@@ -47,7 +48,7 @@ export interface ParsedInput {
   isImportant: boolean;
   dueDate?: string;
   
-  // 파싱 결과 확장
+  // [지능형 엔진] 파싱 결과 확장
   entryType: EntryType;
   difficulty?: number;
   estimatedTime?: number;
@@ -56,13 +57,12 @@ export interface ParsedInput {
   endTime?: string;
 }
 
-// 지능형 엔진 API 응답 규격
+// [지능형 엔진] API 응답 규격
 export type EngineAction = 'CREATE_TASK' | 'CHANGE_THEME';
 
 export interface EngineResponse {
   action: EngineAction;
   payload: {
-    // CREATE_TASK인 경우
     title?: string;
     entryType?: EntryType;
     category?: string;
@@ -73,7 +73,6 @@ export interface EngineResponse {
     endTime?: string;
     dueDate?: string;
     isImportant?: boolean;
-    // CHANGE_THEME인 경우
     theme?: 'dark' | 'light';
   };
 }

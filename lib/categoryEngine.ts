@@ -1,6 +1,7 @@
 // ==============================
 // Team-Sigma: Category Classification Engine
 // 한국어 키워드 기반 자동 카테고리 분류 및 지능형 파싱 (TODO vs PLAN)
+// [통합본: 지능형 엔진 + 팀원 기능]
 // ==============================
 
 import { CategoryInfo, ParsedInput, EntryType } from '@/types';

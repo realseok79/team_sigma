@@ -65,7 +65,7 @@ export default function Home() {
       inputRef.current?.focus();
     } catch (error) {
       console.error("AI Parsing Error:", error);
-      // Fallback: 로컬 정규식 기반 파싱 (Step 2~5 로직 활용)
+      // Fallback: 로컬 정규식 기반 파싱
       addTask(trimmed, startTime, endTime);
       setInputValue("");
       setStartTime("");

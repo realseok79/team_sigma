@@ -1,8 +1,9 @@
 "use client";
 
 // ==============================
-// Flow To-Do: Global Task State Management
+// Team-Sigma: Global Task State Management
 // React Context + useReducer
+// [통합본: 지능형 엔진 + 팀원 기능]
 // ==============================
 
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
@@ -44,7 +45,7 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         elapsedTime: 0,
         dueDate: action.payload.dueDate,
         
-        // 지능형 분류 및 파싱 필드
+        // [지능형 엔진] 필드
         entryType: action.payload.entryType,
         difficulty: action.payload.difficulty,
         estimatedTime: action.payload.estimatedTime,
@@ -52,7 +53,7 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         startTime: action.payload.startTime,
         endTime: action.payload.endTime,
 
-        // 연기 및 상태 필드 (팀원 추가)
+        // [팀원 추가 필드] 연기 기능 등
         postponedCount: 0,
         isPostponed: false,
       };
@@ -71,7 +72,6 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
     }
 
     case "START_TASK": {
-      // 다른 활성 작업이 있으면 일시정지 처리
       const updatedTasks = state.tasks.map((t) => {
         if (t.id === action.payload.id) {
           return { ...t, status: "active" as const };
@@ -167,7 +167,6 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
   }
 }
 
-// Context 타입
 interface TaskContextType {
   state: TaskState;
   dispatch: React.Dispatch<TaskAction>;
@@ -181,18 +180,16 @@ interface TaskContextType {
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
 
-// Provider
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(taskReducer, initialState);
   const [currentTime, setCurrentTime] = React.useState(new Date());
 
-  // localStorage에서 상태 복원 (마운트 시)
+  // localStorage에서 상태 복원
   useEffect(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved) as TaskState;
-        // 활성 타이머는 리셋 (새로고침 시 일시정지 상태로)
         const tasksWithPausedActive = (parsed.tasks || []).map((t) => ({
           ...t,
           status: (t.status === "active" ? "paused" : t.status) as any,
@@ -214,7 +211,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         });
       }
     } catch {
-      // localStorage 접근 불가 시 무시
+      // ignore
     }
   }, []);
 
@@ -232,7 +229,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
-      // localStorage 용량 초과 등 무시
+      // ignore
     }
   }, [state]);
 
@@ -284,7 +281,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    // 정렬 로직: 미뤄진 일(isPostponed)을 최상단으로, 그 다음 중요도, 그 다음 생성일순
     return tasks.sort((a, b) => {
       if (a.isPostponed && !b.isPostponed) return -1;
       if (!a.isPostponed && b.isPostponed) return 1;
@@ -331,7 +327,6 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Hook
 export function useTaskContext() {
   const context = useContext(TaskContext);
   if (!context) {
