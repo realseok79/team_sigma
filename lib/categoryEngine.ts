@@ -100,7 +100,18 @@ export function parseTaskInput(input: string): ParsedInput {
     }
   }
 
-  // 3. 카테고리 감지 (키워드 매핑)
+  // 3. 시간 범위 감지 (13:00~15:00)
+  let startTime: string | undefined;
+  let endTime: string | undefined;
+  const timeRangeRegex = /(\d{1,2}:\d{2})\s*~\s*(\d{1,2}:\d{2})/;
+  const match = cleanedTitle.match(timeRangeRegex);
+  if (match) {
+    startTime = match[1];
+    endTime = match[2];
+    cleanedTitle = cleanedTitle.replace(timeRangeRegex, '').replace(/\s*\/\s*$/, '').trim();
+  }
+
+  // 4. 카테고리 감지 (키워드 매핑)
   let detectedCategory = '일반';
   for (const [keyword, category] of Object.entries(KEYWORD_MAP)) {
     if (trimmed.toLowerCase().includes(keyword.toLowerCase())) {
@@ -111,7 +122,7 @@ export function parseTaskInput(input: string): ParsedInput {
 
   const category = getCategoryByName(detectedCategory);
 
-  // 4. 제목이 비어있으면 원본 사용
+  // 5. 제목이 비어있으면 원본 사용
   if (!cleanedTitle) {
     cleanedTitle = trimmed;
   }
@@ -121,6 +132,8 @@ export function parseTaskInput(input: string): ParsedInput {
     category,
     isImportant,
     dueDate,
+    startTime,
+    endTime,
   };
 }
 
