@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Play, Pause, Square, Clock, Star, Trash2 } from "lucide-react";
+import { Play, Pause, Square, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle } from "lucide-react";
 import { Task } from "@/types";
 import { formatTime } from "@/hooks/useTimer";
 
@@ -14,9 +14,22 @@ interface TaskCardProps {
   onToggleImportant: (id: string) => void;
 }
 
+const priorityColors = {
+  high: "text-red-500 bg-red-50 dark:bg-red-900/20",
+  medium: "text-orange-500 bg-orange-50 dark:bg-orange-900/20",
+  low: "text-blue-500 bg-blue-50 dark:bg-blue-900/20",
+};
+
+const priorityLabels = {
+  high: "우선순위: 상",
+  medium: "우선순위: 중",
+  low: "우선순위: 하",
+};
+
 export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggleImportant }: TaskCardProps) {
   const isActive = task.status === "active";
   const isPaused = task.status === "paused";
+  const isTodo = task.entryType === "TODO";
 
   return (
     <div className={`group relative rounded-2xl border transition-all duration-300 ${
@@ -36,12 +49,37 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
               {task.title}
             </h3>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {task.category && (
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${task.categoryColor}`}>
                 {task.category}
               </span>
             )}
+            
+            {/* TO-DO 전용 뱃지 */}
+            {isTodo && (
+              <>
+                {task.priority && (
+                  <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${priorityColors[task.priority]}`}>
+                    <AlertCircle size={12} />
+                    {priorityLabels[task.priority]}
+                  </div>
+                )}
+                {task.estimatedTime && (
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-secondary bg-sidebar-bg px-2 py-0.5 rounded uppercase tracking-wider">
+                    <Hourglass size={12} />
+                    예상: {task.estimatedTime}분
+                  </div>
+                )}
+                {task.difficulty && (
+                  <div className="flex items-center gap-1 text-[11px] font-bold text-secondary bg-sidebar-bg px-2 py-0.5 rounded uppercase tracking-wider">
+                    <Gauge size={12} />
+                    난이도: {task.difficulty}
+                  </div>
+                )}
+              </>
+            )}
+
             {task.dueDate && (
               <div className="flex items-center gap-1 text-[11px] font-bold text-red-500 uppercase tracking-wider">
                 <Clock size={12} />
