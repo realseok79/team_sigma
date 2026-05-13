@@ -165,14 +165,20 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       if (saved) {
         const parsed = JSON.parse(saved) as TaskState;
         // 활성 타이머는 리셋 (새로고침 시 일시정지 상태로)
-        const tasksWithPausedActive = parsed.tasks.map((t) =>
-          t.status === "active" ? { ...t, status: "paused" as const } : t
-        );
+        const tasksWithPausedActive = parsed.tasks.map((t) => ({
+          ...t,
+          status: (t.status === "active" ? "paused" : t.status) as any,
+          entryType: t.entryType || "TODO", // 구 버전 데이터 호환성
+        }));
         dispatch({
           type: "LOAD_STATE",
           payload: {
             ...parsed,
             tasks: tasksWithPausedActive,
+            completedTasks: (parsed.completedTasks || []).map(t => ({
+              ...t,
+              entryType: t.entryType || "TODO"
+            })),
             activeTaskId: null,
             searchQuery: "",
           },

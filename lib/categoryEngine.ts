@@ -129,7 +129,7 @@ export function parseTaskInput(input: string): ParsedInput {
     else if (/매우\s*쉬운|간단한/.test(cleanedTitle)) difficulty = 1;
     
     if (difficulty) {
-      cleanedTitle = cleanedTitle.replace(/매우\s*어려운|극악|어려운|복잡한|힘든|보통|일반적인|쉬운|단순한|금방|매우\s*쉬운|간단한/g, '').trim();
+      cleanedTitle = cleanedTitle.replace(/매우\s*어려운|극악|어려운|복잡한|힘든|보통|일반적인|매우\s*쉬운|쉬운|단순한|금방|간단한/g, '').trim();
     } else {
       difficulty = 3; // 기본값
     }
