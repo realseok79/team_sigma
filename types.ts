@@ -50,6 +50,28 @@ export interface ParsedInput {
   endTime?: string;
 }
 
+// 지능형 엔진 API 응답 규격
+export type EngineAction = 'CREATE_TASK' | 'CHANGE_THEME';
+
+export interface EngineResponse {
+  action: EngineAction;
+  payload: {
+    // CREATE_TASK인 경우
+    title?: string;
+    entryType?: EntryType;
+    category?: string;
+    priority?: PriorityLevel;
+    difficulty?: number;
+    estimatedTime?: number;
+    startTime?: string;
+    endTime?: string;
+    dueDate?: string;
+    isImportant?: boolean;
+    // CHANGE_THEME인 경우
+    theme?: 'dark' | 'light';
+  };
+}
+
 // Context state
 export interface TaskState {
   tasks: Task[];
