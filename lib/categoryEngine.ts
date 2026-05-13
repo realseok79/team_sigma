@@ -102,7 +102,44 @@ export function parseTaskInput(input: string): ParsedInput {
     }
   }
 
-  // 3. 마감일 감지
+  // 3. TO-DO 파라미터 추출 (PLAN이 아닌 경우에만 집중)
+  let difficulty: number | undefined;
+  let estimatedTime: number | undefined;
+  let priority: ParsedInput['priority'] = 'medium';
+
+  if (entryType === 'TODO') {
+    // 예상 시간 추출 (예: 30분, 1시간, 2.5시간)
+    const hourMatch = cleanedTitle.match(/(\d+(?:\.\d+)?)\s*시간/);
+    const minMatch = cleanedTitle.match(/(\d+)\s*분/);
+    
+    let totalMins = 0;
+    if (hourMatch) totalMins += parseFloat(hourMatch[1]) * 60;
+    if (minMatch) totalMins += parseInt(minMatch[1]);
+    
+    if (totalMins > 0) {
+      estimatedTime = totalMins;
+      cleanedTitle = cleanedTitle.replace(/(\d+(?:\.\d+)?)\s*시간/, '').replace(/(\d+)\s*분/, '').trim();
+    }
+
+    // 난이도 분석
+    if (/매우\s*어려운|극악/.test(cleanedTitle)) difficulty = 5;
+    else if (/어려운|복잡한|힘든/.test(cleanedTitle)) difficulty = 4;
+    else if (/보통|일반적인/.test(cleanedTitle)) difficulty = 3;
+    else if (/쉬운|단순한|금방/.test(cleanedTitle)) difficulty = 2;
+    else if (/매우\s*쉬운|간단한/.test(cleanedTitle)) difficulty = 1;
+    
+    if (difficulty) {
+      cleanedTitle = cleanedTitle.replace(/매우\s*어려운|극악|어려운|복잡한|힘든|보통|일반적인|쉬운|단순한|금방|매우\s*쉬운|간단한/g, '').trim();
+    } else {
+      difficulty = 3; // 기본값
+    }
+
+    // 우선순위 매핑
+    if (isImportant) priority = 'high';
+    else if (/낮은|천천히|나중에/.test(cleanedTitle)) priority = 'low';
+  }
+
+  // 4. 마감일 감지
   let dueDate: string | undefined;
   for (const { pattern, label } of DUE_PATTERNS) {
     if (pattern.test(cleanedTitle)) {
@@ -112,7 +149,7 @@ export function parseTaskInput(input: string): ParsedInput {
     }
   }
 
-  // 4. 카테고리 감지
+  // 5. 카테고리 감지
   let detectedCategory = '일반';
   for (const [keyword, category] of Object.entries(KEYWORD_MAP)) {
     if (trimmed.toLowerCase().includes(keyword.toLowerCase())) {
@@ -133,6 +170,9 @@ export function parseTaskInput(input: string): ParsedInput {
     entryType,
     startTime,
     endTime,
+    difficulty,
+    estimatedTime,
+    priority,
   };
 }
 
