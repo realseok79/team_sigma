@@ -4,6 +4,7 @@ import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { TopBar } from "@/components/TopBar";
 import { TaskProvider } from "@/context/TaskContext";
+import { NotificationManager } from "@/components/NotificationManager";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className={`${inter.className} antialiased flex min-h-screen`}>
         <TaskProvider>
+          <NotificationManager />
           <Sidebar />
           <div className="flex-1 flex flex-col bg-background transition-colors duration-300">
             <TopBar />
