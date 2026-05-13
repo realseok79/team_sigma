@@ -7,14 +7,21 @@ import { useTaskContext } from "@/context/TaskContext";
 
 export default function Home() {
   const [inputValue, setInputValue] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { state, dispatch, addTask, getFilteredTasks, getActiveTask } = useTaskContext();
 
   const handleAddTask = () => {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
-    addTask(trimmed);
+    if (!startTime || !endTime) return; // 시간 필수
+    addTask(trimmed, startTime, endTime);
     setInputValue("");
+    setStartTime("");
+    setEndTime("");
+    setShowTimePicker(false);
     inputRef.current?.focus();
   };
 
@@ -24,6 +31,8 @@ export default function Home() {
       handleAddTask();
     }
   };
+
+  const canAdd = inputValue.trim() && startTime && endTime;
 
   const activeTask = getActiveTask();
   const filteredTasks = getFilteredTasks();
@@ -105,33 +114,105 @@ export default function Home() {
           </div>
           <h3 className="text-lg font-semibold text-foreground/70">할 일이 없습니다</h3>
           <p className="text-sm text-secondary max-w-sm">
-            아래 입력창에 할 일을 입력해 보세요.<br />
-            카테고리와 중요도가 자동으로 분류됩니다.
+            아래 입력창에서 할 일과 시간대를 설정해 보세요.<br />
+            예: 역사공부하기 / 13:00 ~ 15:00
           </p>
         </div>
       )}
 
-      {/* 입력 필드 */}
-      <div className="relative group">
-        <div className="absolute left-6 top-1/2 -translate-y-1/2 text-secondary group-focus-within:text-accent transition-colors">
-          <Plus size={20} />
+      {/* 입력 폼 */}
+      <div className="bg-card-bg border border-border rounded-2xl shadow-sm overflow-hidden transition-all">
+        {/* 할일 이름 입력 */}
+        <div className="relative group">
+          <div className="absolute left-6 top-1/2 -translate-y-1/2 text-secondary group-focus-within:text-accent transition-colors">
+            <Plus size={20} />
+          </div>
+          <input 
+            ref={inputRef}
+            type="text"
+            value={inputValue}
+            onChange={(e) => {
+              setInputValue(e.target.value);
+              if (e.target.value.trim() && !showTimePicker) {
+                setShowTimePicker(true);
+              }
+            }}
+            onFocus={() => {
+              if (inputValue.trim()) setShowTimePicker(true);
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="새로운 작업을 추가하세요... (예: 역사공부하기)"
+            className="w-full bg-transparent py-5 pl-14 pr-6 focus:outline-none transition-all text-foreground placeholder:text-secondary/60"
+          />
         </div>
-        <input 
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="새로운 작업을 추가하세요... (예: 중요! 내일 발표 준비하기)"
-          className="w-full bg-card-bg border border-border rounded-2xl py-5 pl-14 pr-24 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all shadow-sm"
-        />
-        <button 
-          onClick={handleAddTask}
-          disabled={!inputValue.trim()}
-          className="absolute right-6 top-1/2 -translate-y-1/2 bg-accent/10 text-accent font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-accent hover:text-white transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          추가
-        </button>
+
+        {/* 시간대 설정 패널 */}
+        {showTimePicker && (
+          <div className="border-t border-border px-6 py-4 bg-sidebar-bg/30 animate-in slide-in-from-top-2 duration-200">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-2 text-sm font-bold text-secondary">
+                <Clock size={16} />
+                시간대 설정
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-secondary uppercase tracking-wider">시작</label>
+                  <input
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    className="bg-card-bg border border-border rounded-lg px-3 py-2 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  />
+                </div>
+                <span className="text-secondary font-bold text-lg">~</span>
+                <div className="flex items-center gap-2">
+                  <label className="text-xs font-bold text-secondary uppercase tracking-wider">종료</label>
+                  <input
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    className="bg-card-bg border border-border rounded-lg px-3 py-2 text-sm font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent transition-all"
+                  />
+                </div>
+              </div>
+              
+              {startTime && endTime && (
+                <div className="ml-auto text-xs font-bold text-accent bg-accent/10 px-3 py-1 rounded-full">
+                  {(() => {
+                    const [sh, sm] = startTime.split(":").map(Number);
+                    const [eh, em] = endTime.split(":").map(Number);
+                    const diff = (eh * 60 + em) - (sh * 60 + sm);
+                    if (diff <= 0) return "시간을 확인해주세요";
+                    const h = Math.floor(diff / 60);
+                    const m = diff % 60;
+                    return `${h > 0 ? `${h}시간 ` : ""}${m > 0 ? `${m}분` : ""}`;
+                  })()}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <button
+                onClick={() => {
+                  setShowTimePicker(false);
+                  setStartTime("");
+                  setEndTime("");
+                }}
+                className="text-sm text-secondary hover:text-foreground transition-colors font-medium"
+              >
+                취소
+              </button>
+              <button 
+                onClick={handleAddTask}
+                disabled={!canAdd}
+                className="bg-accent text-white font-bold text-sm px-6 py-2 rounded-xl hover:bg-accent/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <Plus size={16} />
+                추가
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

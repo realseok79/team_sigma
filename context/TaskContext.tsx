@@ -159,7 +159,8 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
 interface TaskContextType {
   state: TaskState;
   dispatch: React.Dispatch<TaskAction>;
-  addTask: (input: string) => void;
+  addTask: (input: string, startTime: string, endTime: string) => void;
+  currentTime: Date;
   getFilteredTasks: () => Task[];
   getImportantTasks: () => Task[];
   getActiveTask: () => Task | undefined;
@@ -171,6 +172,7 @@ const TaskContext = createContext<TaskContextType | undefined>(undefined);
 // Provider
 export function TaskProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(taskReducer, initialState);
+  const [currentTime, setCurrentTime] = React.useState(new Date());
 
   // localStorage에서 상태 복원 (마운트 시)
   useEffect(() => {
@@ -206,12 +208,14 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state]);
 
-  // 타이머 인터벌
+  // 매초 현재 시각을 갱신 (타임워치용)
   useEffect(() => {
-    if (!state.activeTaskId) return;
-
     const interval = setInterval(() => {
-      dispatch({ type: "TICK_TIMER" });
+      setCurrentTime(new Date());
+      // 기존 elapsedTime 증가도 유지 (히스토리에서 총 소요시간 표시용)
+      if (state.activeTaskId) {
+        dispatch({ type: "TICK_TIMER" });
+      }
     }, 1000);
 
     return () => clearInterval(interval);
@@ -219,7 +223,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
 
   // 편의 함수들
   const addTask = useCallback(
-    (input: string) => {
+    (input: string, startTime: string, endTime: string) => {
       const parsed = parseTaskInput(input);
       dispatch({
         type: "ADD_TASK",
@@ -229,8 +233,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           categoryColor: categoryToColorClass(parsed.category),
           isImportant: parsed.isImportant,
           dueDate: parsed.dueDate,
-          startTime: parsed.startTime,
-          endTime: parsed.endTime,
+          startTime,
+          endTime,
         },
       });
     },
@@ -284,6 +288,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         state,
         dispatch,
         addTask,
+        currentTime,
         getFilteredTasks,
         getImportantTasks,
         getActiveTask,
