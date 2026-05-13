@@ -78,6 +78,7 @@ export interface TaskState {
   completedTasks: Task[];
   activeTaskId: string | null;
   searchQuery: string;
+  theme: 'dark' | 'light';
 }
 
 // Context actions
@@ -89,5 +90,6 @@ export type TaskAction =
   | { type: 'COMPLETE_TASK'; payload: { id: string } }
   | { type: 'TOGGLE_IMPORTANT'; payload: { id: string } }
   | { type: 'SET_SEARCH'; payload: { query: string } }
+  | { type: 'SET_THEME'; payload: { theme: 'dark' | 'light' } }
   | { type: 'TICK_TIMER' }
   | { type: 'LOAD_STATE'; payload: TaskState };

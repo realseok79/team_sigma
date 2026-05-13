@@ -5,22 +5,12 @@ import { Search, Moon, Sun, HelpCircle, Bell, User } from "lucide-react";
 import { useTaskContext } from "@/context/TaskContext";
 
 export function TopBar() {
-  const [isDark, setIsDark] = useState(false);
   const { state, dispatch } = useTaskContext();
-
-  useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains("dark");
-    setIsDark(isDarkMode);
-  }, []);
+  const isDark = state.theme === "dark";
 
   const toggleTheme = () => {
-    const newDark = !isDark;
-    setIsDark(newDark);
-    if (newDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
+    const nextTheme = isDark ? "light" : "dark";
+    dispatch({ type: "SET_THEME", payload: { theme: nextTheme } });
   };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {

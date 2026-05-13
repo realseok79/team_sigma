@@ -18,6 +18,7 @@ const initialState: TaskState = {
   completedTasks: [],
   activeTaskId: null,
   searchQuery: "",
+  theme: "light",
 };
 
 // UUID 생성
@@ -28,6 +29,9 @@ function generateId(): string {
 // Reducer
 function taskReducer(state: TaskState, action: TaskAction): TaskState {
   switch (action.type) {
+    case "SET_THEME": {
+      return { ...state, theme: action.payload.theme };
+    }
     case "ADD_TASK": {
       const newTask: Task = {
         id: generateId(),
@@ -165,7 +169,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       if (saved) {
         const parsed = JSON.parse(saved) as TaskState;
         // 활성 타이머는 리셋 (새로고침 시 일시정지 상태로)
-        const tasksWithPausedActive = parsed.tasks.map((t) => ({
+        const tasksWithPausedActive = (parsed.tasks || []).map((t) => ({
           ...t,
           status: (t.status === "active" ? "paused" : t.status) as any,
           entryType: t.entryType || "TODO", // 구 버전 데이터 호환성
@@ -181,6 +185,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
             })),
             activeTaskId: null,
             searchQuery: "",
+            theme: parsed.theme || "light",
           },
         });
       }
@@ -188,6 +193,15 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       // localStorage 접근 불가 시 무시
     }
   }, []);
+
+  // 테마 적용 (state.theme 변경 시 document 클래스 업데이트)
+  useEffect(() => {
+    if (state.theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [state.theme]);
 
   // 상태 변경 시 localStorage에 저장
   useEffect(() => {

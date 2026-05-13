@@ -47,8 +47,9 @@ export default function Home() {
           },
         });
       } else if (result.action === "CHANGE_THEME") {
-        // TODO: Step 8에서 테마 제어 로직 구현 예정
-        console.log("Theme change requested:", result.payload.theme);
+        // AI가 제안한 테마로 변경
+        const targetTheme = result.payload.theme || "light";
+        dispatch({ type: "SET_THEME", payload: { theme: targetTheme } });
       }
 
       setInputValue("");
