@@ -9,6 +9,7 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
 import { Task, TaskState, TaskAction } from "@/types";
 import { parseTaskInput, categoryToColorClass } from "@/lib/categoryEngine";
+import { addDifficultyHistory } from "@/lib/userHistory";
 
 // localStorage key
 const STORAGE_KEY = "flow-todo-state";
@@ -162,6 +163,13 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
       return action.payload;
     }
 
+    case "UPDATE_TASK_DIFFICULTY": {
+      const updatedTasks = state.tasks.map((t) =>
+        t.id === action.payload.id ? { ...t, difficulty: action.payload.newDifficulty } : t
+      );
+      return { ...state, tasks: updatedTasks };
+    }
+
     default:
       return state;
   }
@@ -176,6 +184,7 @@ interface TaskContextType {
   getImportantTasks: () => Task[];
   getActiveTask: () => Task | undefined;
   getPendingTasks: () => Task[];
+  updateTaskDifficulty: (id: string, newDifficulty: number) => void;
 }
 
 const TaskContext = createContext<TaskContextType | undefined>(undefined);
@@ -309,6 +318,26 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     );
   }, [state.tasks]);
 
+  const updateTaskDifficulty = useCallback(
+    (id: string, newDifficulty: number) => {
+      const task = state.tasks.find((t) => t.id === id);
+      if (task) {
+        // 기록 추가
+        addDifficultyHistory({
+          taskTitle: task.title,
+          category: task.category,
+          aiSuggestedDifficulty: task.difficulty || 3, // 기존 값이 없으면 기본 3
+          userAdjustedDifficulty: newDifficulty,
+          adjustedAt: new Date().toISOString(),
+        });
+
+        // 상태 업데이트
+        dispatch({ type: "UPDATE_TASK_DIFFICULTY", payload: { id, newDifficulty } });
+      }
+    },
+    [state.tasks, dispatch]
+  );
+
   return (
     <TaskContext.Provider
       value={{
@@ -320,6 +349,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
         getImportantTasks,
         getActiveTask,
         getPendingTasks,
+        updateTaskDifficulty,
       }}
     >
       {children}
