@@ -38,9 +38,9 @@ function formatTimeDisplay(totalSeconds: number): string {
 }
 
 const priorityColors = {
-  high: "text-red-500 bg-red-50 dark:bg-red-900/20",
-  medium: "text-orange-500 bg-orange-50 dark:bg-orange-900/20",
-  low: "text-blue-500 bg-blue-50 dark:bg-blue-900/20",
+  high: "text-white bg-red-500 shadow-[0_2px_10px_rgba(239,68,68,0.2)]",
+  medium: "text-white bg-orange-500 shadow-[0_2px_10px_rgba(249,115,22,0.2)]",
+  low: "text-white bg-blue-500 shadow-[0_2px_10_rgba(59,130,246,0.2)]",
 };
 
 const priorityLabels = {
@@ -149,21 +149,21 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
             {isTodo && (
               <>
                 {task.priority && (
-                  <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${priorityColors[task.priority]}`}>
-                    <AlertCircle size={12} />
+                  <div className={`flex items-center gap-1.5 text-[12px] font-black px-3 py-1 rounded-full uppercase tracking-wider ${priorityColors[task.priority]}`}>
+                    <AlertCircle size={13} strokeWidth={3} />
                     {priorityLabels[task.priority]}
                   </div>
                 )}
                 {task.estimatedTime && (
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-secondary bg-sidebar-bg px-2 py-0.5 rounded uppercase tracking-wider">
-                    <Hourglass size={12} />
-                    예상: {task.estimatedTime}분
+                  <div className="flex items-center gap-1.5 text-[12px] font-black text-foreground bg-sidebar-bg border border-border px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    <Hourglass size={13} className="text-accent" strokeWidth={3} />
+                    예상: <span className="text-accent">{task.estimatedTime}분</span>
                   </div>
                 )}
                 {task.difficulty && (
-                  <div className="flex items-center gap-3 text-[11px] font-bold text-secondary bg-sidebar-bg px-2 py-0.5 rounded uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
-                      <Gauge size={12} />
+                  <div className="flex items-center gap-4 text-[12px] font-black text-foreground bg-sidebar-bg border border-border px-3 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                    <div className="flex items-center gap-1.5">
+                      <Gauge size={13} className="text-accent" strokeWidth={3} />
                       난이도
                     </div>
                     <DifficultyEditor 
