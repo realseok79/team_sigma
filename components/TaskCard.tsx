@@ -102,6 +102,8 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
     }
   };
 
+  const [isSplitting, setIsSplitting] = useState(false);
+
   const postponedStyle = task.isDeferred ? getPostponedColor(task.deferCount) : "";
 
   // 프로그레스 바 색상
@@ -126,10 +128,10 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
     <div 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`group relative rounded-2xl border transition-all duration-300 ${task.isAnalyzing ? 'opacity-60 pointer-events-none' : ''} ${
+      className={`group relative rounded-2xl border transition-all duration-300 ${task.isAnalyzing ? 'opacity-60' : ''} ${
       isActive 
         ? "bg-accent/[0.03] border-accent/30 shadow-lg shadow-accent/5 p-8" 
-        : `${task.isDeferred ? postponedStyle : "bg-card-bg"} border-border hover:border-accent/20 hover:shadow-md p-6`
+        : `${task.isDeferred ? postponedStyle : "bg-card-bg"} ${task.isStuck ? "border-orange-500/50" : "border-border"} hover:border-accent/20 hover:shadow-md p-6`
     }`}>
       {/* 중요 표시 바 */}
       {task.isImportant && !task.isDeferred && (
@@ -143,8 +145,14 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
             <h3 className={`font-semibold transition-colors ${isActive ? "text-xl text-foreground" : "text-[16px]"} ${task.isDeferred && task.deferCount >= 3 ? "text-inherit" : "text-foreground/90"}`}>
               {task.title}
               {task.isDeferred && (
-                <span className="ml-2 text-xs font-bold opacity-80">
-                  ({task.deferCount}일 미뤄짐)
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-secondary/10 text-secondary ml-2">
+                  {task.deferCount}회 미룸
+                </span>
+              )}
+              {task.isStuck && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-orange-500 text-white ml-2 animate-pulse">
+                  <AlertCircle size={10} />
+                  STUCK
                 </span>
               )}
             </h3>
@@ -215,8 +223,70 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
                 진행 시간: {formatTimeDisplay(task.elapsedTime)}
               </div>
             )}
+        </div>
+      </div>
+
+      {/* 악성 태스크(Stuck) 제안 UI */}
+      {task.isStuck && (
+        <div className="mt-6 p-4 rounded-xl bg-orange-500/5 border border-orange-500/20 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-orange-600 dark:text-orange-400">
+              ⚠️ 이 작업이 계속 미뤄지고 있네요. 작은 단위로 쪼개볼까요?
+            </p>
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => dispatch({ type: "DISMISS_STUCK_SUGGESTION", payload: { id: task.id } })}
+                className="text-[11px] font-bold text-secondary hover:text-foreground px-2 py-1 rounded-md transition-all"
+              >
+                나중에
+              </button>
+              <button 
+                disabled={isSplitting}
+                onClick={async () => {
+                  setIsSplitting(true);
+                  try {
+                    const res = await fetch("/api/split-task", {
+                      method: "POST",
+                      body: JSON.stringify({
+                        taskTitle: task.title,
+                        taskCategory: task.category,
+                        difficulty: task.difficulty
+                      })
+                    });
+                    const data = await res.json();
+                    if (data.subtasks) {
+                      dispatch({
+                        type: "SPLIT_TASK",
+                        payload: {
+                          parentId: task.id,
+                          subtasks: data.subtasks.map((st: any) => ({
+                            title: st.title,
+                            category: task.category,
+                            categoryColor: task.categoryColor,
+                            isImportant: task.isImportant,
+                            entryType: "TODO",
+                            difficulty: st.difficulty,
+                            estimatedTime: st.estimatedTime,
+                            priority: task.priority
+                          }))
+                        }
+                      });
+                    }
+                  } catch (e) {
+                    console.error(e);
+                  } finally {
+                    setIsSplitting(false);
+                  }
+                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-md transition-all flex items-center gap-1.5 shadow-sm shadow-orange-500/20"
+              >
+                {isSplitting ? <Loader2 size={12} className="animate-spin" /> : <Split size={12} />}
+                태스크 분할하기
+              </button>
+            </div>
           </div>
         </div>
+      )}
 
         {/* 활성 타임워치 / 타이머 */}
         {isActive && (

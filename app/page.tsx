@@ -23,27 +23,32 @@ export default function Home() {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
 
-    // 낙관적 업데이트: 즉시 UI에 추가 (isAnalyzing: true 로 표시)
+    // [핵심 개선] 즉시 확정 (Instant Confirmation)
+    // 로컬 엔진으로 즉시 분석하여 화면에 바로 추가합니다.
     const tempId = addTask(trimmed, startTime, endTime);
+    
+    // AI 로딩 상태를 로컬 UI state에서는 즉시 해제하여 사용자가 '확정'되었다고 느끼게 함
+    setIsAnalyzing(false); 
 
-    // 입력 초기화 (사용자는 즉시 다음 작업을 입력 가능)
+    // 입력창 즉시 초기화
     setInputValue("");
     setStartTime("");
     setEndTime("");
     setShowTimePicker(false);
-    setIsAnalyzing(true);
+    inputRef.current?.focus();
 
     try {
-      // [지능형 엔진] 1. AI 분석 비동기 수행
+      // 2단계: AI 분석 비동기 수행 (백그라운드에서 진행)
+      // TaskCard 내부적으로 isAnalyzing: true 상태이므로 사용자에게는 분석 중임이 보이지만, 
+      // 입력을 막거나 전체 UI를 멈추지 않습니다.
       const result = await parseWithAI(trimmed);
 
       if (result.action === "CREATE_TASK") {
         const { payload } = result;
-        
         const categories = getAllCategories();
         const categoryInfo = categories.find(c => c.name === payload.category) || categories[categories.length - 1];
 
-        // 2. 상태 업데이트 (AI 파싱값으로 기존 태스크 업데이트)
+        // AI 분석 결과로 작업 내용 강화 (Enhancement)
         dispatch({
           type: "UPDATE_TASK",
           payload: {
@@ -58,26 +63,22 @@ export default function Home() {
               difficulty: payload.difficulty,
               estimatedTime: payload.estimatedTime,
               priority: payload.priority,
-              // 수동 설정 유지
+              // 수동 설정값은 유지 (사용자 의도 우선)
               startTime: startTime || payload.startTime,
               endTime: endTime || payload.endTime,
-              isAnalyzing: false, // 분석 완료
+              isAnalyzing: false, // 특정 작업의 AI 로딩 종료
             }
           },
         });
       } else if (result.action === "CHANGE_THEME") {
         const targetTheme = result.payload.theme || "light";
         dispatch({ type: "SET_THEME", payload: { theme: targetTheme } });
-        // 테마 변경 명령인 경우, 임시로 추가된 태스크 삭제
         dispatch({ type: "DELETE_TASK", payload: { id: tempId } });
       }
-
     } catch (error) {
-      console.error("AI Parsing Error:", error);
-      // Fallback: AI 분석 실패 시 로딩 상태만 해제 (로컬 파싱값 유지)
+      console.error("AI Enhancement Error:", error);
+      // AI 실패 시에도 이미 로컬 엔진으로 추가되었으므로 로딩 상태만 해제하고 그대로 유지
       dispatch({ type: "UPDATE_TASK", payload: { id: tempId, data: { isAnalyzing: false } } });
-    } finally {
-      setIsAnalyzing(false);
     }
   };
 

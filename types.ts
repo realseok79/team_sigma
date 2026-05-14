@@ -38,6 +38,12 @@ export interface Task {
 
   // [UI 상태] AI 분석 중 여부 (낙관적 업데이트용)
   isAnalyzing?: boolean;
+
+  // [악성 태스크 감지]
+  parentTaskId?: string;     // 하위 태스크인 경우 부모 ID
+  isStuck?: boolean;         // stuck 상태 여부
+  isArchived?: boolean;      // 분할 후 원본 보존 여부
+  lastDismissedAt?: string;  // 분할 제안 거절 시점
 }
 
 export interface CategoryInfo {
@@ -117,4 +123,6 @@ export type TaskAction =
   | { type: 'LOAD_STATE'; payload: TaskState }
   | { type: 'UPDATE_TASK_DIFFICULTY'; payload: { id: string; newDifficulty: number } }
   | { type: 'TICK_STAY_TIME'; payload: { id: string; timeMs: number } }
-  | { type: 'SET_SORTING_MODE'; payload: { mode: 'default' | 'adaptive' } };
+  | { type: 'SET_SORTING_MODE'; payload: { mode: 'default' | 'adaptive' } }
+  | { type: 'SPLIT_TASK'; payload: { parentId: string; subtasks: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime' | 'deferCount' | 'isDeferred' | 'originalDate' | 'lastDeferredAt' | 'detailPageStayTime'>[] } }
+  | { type: 'DISMISS_STUCK_SUGGESTION'; payload: { id: string } };

@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { useTaskContext } from "@/context/TaskContext";
-import { Bell, AlertCircle, X } from "lucide-react";
+import { Bell, AlertCircle, X, Split } from "lucide-react";
+import { isStuckTask } from "@/lib/stuckTaskEngine";
 
 interface Notification {
   id: string;
@@ -71,6 +72,13 @@ export function NotificationManager() {
                 dispatch({ type: "DEFER_TASK", payload: { id: task.id } });
                 addNotification(`${task.title}을(를) 하지 않아 다음날로 미뤘습니다.`, "warning");
             }
+        }
+      });
+
+      // 3. 악성 태스크(Stuck) 감지
+      state.tasks.forEach((task) => {
+        if (!task.isStuck && !task.isArchived && isStuckTask(task, now)) {
+          dispatch({ type: "UPDATE_TASK", payload: { id: task.id, data: { isStuck: true } } });
         }
       });
     };

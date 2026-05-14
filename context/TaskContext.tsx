@@ -185,6 +185,37 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
       return { ...state, sortingMode: action.payload.mode };
     }
 
+    case "SPLIT_TASK": {
+      const parentId = action.payload.parentId;
+      const subtasks: Task[] = action.payload.subtasks.map((st) => ({
+        id: generateId(),
+        createdAt: new Date().toISOString(),
+        status: "pending",
+        elapsedTime: 0,
+        deferCount: 0,
+        isDeferred: false,
+        detailPageStayTime: 0,
+        parentTaskId: parentId,
+        ...st,
+      })) as Task[];
+
+      const updatedTasks = state.tasks.map((t) =>
+        t.id === parentId ? { ...t, isArchived: true, isStuck: false } : t
+      );
+
+      return {
+        ...state,
+        tasks: [...updatedTasks, ...subtasks],
+      };
+    }
+
+    case "DISMISS_STUCK_SUGGESTION": {
+      const updatedTasks = state.tasks.map((t) =>
+        t.id === action.payload.id ? { ...t, lastDismissedAt: new Date().toISOString(), isStuck: false } : t
+      );
+      return { ...state, tasks: updatedTasks };
+    }
+
     case "LOAD_STATE": {
       return action.payload;
     }
@@ -229,6 +260,7 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           ...t,
           status: (t.status === "active" ? "paused" : t.status) as any,
           entryType: t.entryType || "TODO", 
+          isAnalyzing: false, // 로딩 중 멈춘 작업들 강제 해제
         }));
         dispatch({
           type: "LOAD_STATE",
@@ -309,7 +341,8 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getFilteredTasks = useCallback(() => {
-    let tasks = [...state.tasks];
+    // 아카이브된 태스크는 필터링 시 제외
+    let tasks = state.tasks.filter(t => !t.isArchived);
     
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase();
