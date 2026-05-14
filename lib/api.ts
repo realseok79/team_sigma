@@ -28,7 +28,11 @@ export async function parseWithAI(prompt: string): Promise<EngineResponse> {
     }
 
     return await response.json();
-  } catch (error) {
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      // 타임아웃은 사용자 경험을 위한 의도된 동작이므로 에러 로그를 남기지 않습니다.
+      throw error;
+    }
     console.error('parseWithAI Error:', error);
     throw error;
   }

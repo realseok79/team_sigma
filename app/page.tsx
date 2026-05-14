@@ -75,9 +75,12 @@ export default function Home() {
         dispatch({ type: "SET_THEME", payload: { theme: targetTheme } });
         dispatch({ type: "DELETE_TASK", payload: { id: tempId } });
       }
-    } catch (error) {
-      console.error("AI Enhancement Error:", error);
-      // AI 실패 시에도 이미 로컬 엔진으로 추가되었으므로 로딩 상태만 해제하고 그대로 유지
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error("AI Enhancement Error:", error);
+      }
+      // AI 분석이 지연되거나 실패하더라도 이미 로컬 엔진으로 추가되었으므로 
+      // 로딩 상태만 조용히 해제하여 사용성을 유지합니다.
       dispatch({ type: "UPDATE_TASK", payload: { id: tempId, data: { isAnalyzing: false } } });
     }
   };
