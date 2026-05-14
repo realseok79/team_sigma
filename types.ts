@@ -28,10 +28,13 @@ export interface Task {
   endTime?: string;        // HH:mm 형식
 
   // [팀원 추가 필드] 연기 기능 등
-  postponedCount: number;  // 0-5
-  isPostponed: boolean;
+  deferCount: number;      // 0-5 (기존 deferCount)
+  isDeferred: boolean;     // (기존 isDeferred)
   originalDate?: string;   // ISO string of the date it was originally scheduled for
-  lastPostponedAt?: string; // ISO string
+  lastDeferredAt?: string; // ISO string
+
+  // [행동 데이터 로깅] 상세 뷰 체류 시간
+  detailPageStayTime: number; // 초 단위 누적 체류 시간
 }
 
 export interface CategoryInfo {
@@ -96,7 +99,7 @@ export interface TaskState {
 
 // Context actions
 export type TaskAction =
-  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime' | 'postponedCount' | 'isPostponed' | 'originalDate' | 'lastPostponedAt'> }
+  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime' | 'deferCount' | 'isDeferred' | 'originalDate' | 'lastDeferredAt' | 'detailPageStayTime'> }
   | { type: 'DELETE_TASK'; payload: { id: string } }
   | { type: 'START_TASK'; payload: { id: string } }
   | { type: 'PAUSE_TASK'; payload: { id: string } }
@@ -105,6 +108,7 @@ export type TaskAction =
   | { type: 'SET_SEARCH'; payload: { query: string } }
   | { type: 'SET_THEME'; payload: { theme: 'dark' | 'light' } }
   | { type: 'TICK_TIMER' }
-  | { type: 'POSTPONE_TASK'; payload: { id: string } }
+  | { type: 'DEFER_TASK'; payload: { id: string } }
   | { type: 'LOAD_STATE'; payload: TaskState }
-  | { type: 'UPDATE_TASK_DIFFICULTY'; payload: { id: string; newDifficulty: number } };
+  | { type: 'UPDATE_TASK_DIFFICULTY'; payload: { id: string; newDifficulty: number } }
+  | { type: 'TICK_STAY_TIME'; payload: { id: string; timeMs: number } };

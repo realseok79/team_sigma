@@ -55,8 +55,10 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         endTime: action.payload.endTime,
 
         // [팀원 추가 필드] 연기 기능 등
-        postponedCount: 0,
-        isPostponed: false,
+        deferCount: 0,
+        isDeferred: false,
+        // [행동 데이터 로깅]
+        detailPageStayTime: 0,
       };
       return { ...state, tasks: [...state.tasks, newTask] };
     }
@@ -133,15 +135,15 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
       return { ...state, searchQuery: action.payload.query };
     }
 
-    case "POSTPONE_TASK": {
+    case "DEFER_TASK": {
       const updatedTasks = state.tasks.map((t) => {
         if (t.id === action.payload.id) {
           return {
             ...t,
-            postponedCount: Math.min(t.postponedCount + 1, 5),
-            isPostponed: true,
+            deferCount: Math.min(t.deferCount + 1, 5),
+            isDeferred: true,
             status: "pending" as const,
-            lastPostponedAt: new Date().toISOString(),
+            lastDeferredAt: new Date().toISOString(),
           };
         }
         return t;
@@ -154,6 +156,15 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
       const updatedTasks = state.tasks.map((t) =>
         t.id === state.activeTaskId
           ? { ...t, elapsedTime: t.elapsedTime + 1 }
+          : t
+      );
+      return { ...state, tasks: updatedTasks };
+    }
+
+    case "TICK_STAY_TIME": {
+      const updatedTasks = state.tasks.map((t) =>
+        t.id === action.payload.id
+          ? { ...t, detailPageStayTime: (t.detailPageStayTime || 0) + (action.payload.timeMs / 1000) }
           : t
       );
       return { ...state, tasks: updatedTasks };
@@ -291,10 +302,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     }
 
     return tasks.sort((a, b) => {
-      if (a.isPostponed && !b.isPostponed) return -1;
-      if (!a.isPostponed && b.isPostponed) return 1;
-      if (a.isPostponed && b.isPostponed) {
-        return b.postponedCount - a.postponedCount; 
+      if (a.isDeferred && !b.isDeferred) return -1;
+      if (!a.isDeferred && b.isDeferred) return 1;
+      if (a.isDeferred && b.isDeferred) {
+        return b.deferCount - a.deferCount; 
       }
       
       if (a.isImportant && !b.isImportant) return -1;

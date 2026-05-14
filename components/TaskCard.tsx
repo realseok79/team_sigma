@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle } from "lucide-react";
 import { Task } from "@/types";
 import { useTaskContext } from "@/context/TaskContext";
@@ -50,9 +50,22 @@ const priorityLabels = {
 };
 
 export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggleImportant }: TaskCardProps) {
-  const { currentTime, updateTaskDifficulty } = useTaskContext();
+  const { currentTime, updateTaskDifficulty, dispatch } = useTaskContext();
   const isActive = task.status === "active";
   const isTodo = task.entryType === "TODO";
+  
+  const [isHovered, setIsHovered] = useState(false);
+
+  // [행동 데이터 로깅] 호버 체류 시간 측정
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isHovered) {
+      interval = setInterval(() => {
+        dispatch({ type: "TICK_STAY_TIME", payload: { id: task.id, timeMs: 1000 } });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isHovered, task.id, dispatch]);
 
   // 시간 계산
   const hasTimeRange = !!(task.startTime && task.endTime);
@@ -89,7 +102,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
     }
   };
 
-  const postponedStyle = task.isPostponed ? getPostponedColor(task.postponedCount) : "";
+  const postponedStyle = task.isDeferred ? getPostponedColor(task.deferCount) : "";
 
   // 프로그레스 바 색상
   const getProgressColor = () => {
@@ -110,36 +123,39 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
   };
 
   return (
-    <div className={`group relative rounded-2xl border transition-all duration-300 ${
+    <div 
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`group relative rounded-2xl border transition-all duration-300 ${
       isActive 
         ? "bg-accent/[0.03] border-accent/30 shadow-lg shadow-accent/5 p-8" 
-        : `${task.isPostponed ? postponedStyle : "bg-card-bg"} border-border hover:border-accent/20 hover:shadow-md p-6`
+        : `${task.isDeferred ? postponedStyle : "bg-card-bg"} border-border hover:border-accent/20 hover:shadow-md p-6`
     }`}>
       {/* 중요 표시 바 */}
-      {task.isImportant && !task.isPostponed && (
+      {task.isImportant && !task.isDeferred && (
         <div className="absolute left-0 top-4 bottom-4 w-1 bg-amber-400 rounded-full" />
       )}
 
       <div className="flex items-center justify-between gap-6">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
-            <h3 className={`font-semibold transition-colors ${isActive ? "text-xl text-foreground" : "text-[16px]"} ${task.isPostponed && task.postponedCount >= 3 ? "text-inherit" : "text-foreground/90"}`}>
+            <h3 className={`font-semibold transition-colors ${isActive ? "text-xl text-foreground" : "text-[16px]"} ${task.isDeferred && task.deferCount >= 3 ? "text-inherit" : "text-foreground/90"}`}>
               {task.title}
-              {task.isPostponed && (
+              {task.isDeferred && (
                 <span className="ml-2 text-xs font-bold opacity-80">
-                  ({task.postponedCount}일 미뤄짐)
+                  ({task.deferCount}일 미뤄짐)
                 </span>
               )}
             </h3>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            {!task.isPostponed && task.category && (
+            {!task.isDeferred && task.category && (
               <span className={`text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider ${task.categoryColor}`}>
                 {task.category}
               </span>
             )}
 
-            {task.isPostponed && (
+            {task.isDeferred && (
               <span className="text-[11px] font-bold px-2 py-0.5 rounded uppercase tracking-wider bg-white/20">
                 미뤄진 작업
               </span>
@@ -176,7 +192,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
             )}
 
             {hasTimeRange && (
-              <div className={`flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider ${task.isPostponed && task.postponedCount >= 3 ? "text-inherit" : "text-accent"}`}>
+              <div className={`flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider ${task.isDeferred && task.deferCount >= 3 ? "text-inherit" : "text-accent"}`}>
                 <Clock size={12} />
                 {task.startTime} ~ {task.endTime}
               </div>
@@ -273,7 +289,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
         {/* 비활성 상태 액션 */}
         {!isActive && (
           <div className="flex items-center gap-2">
-            {!task.isPostponed && (
+            {!task.isDeferred && (
               <button 
                 onClick={() => onToggleImportant(task.id)}
                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
@@ -287,14 +303,14 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
             )}
             <button 
               onClick={() => onDelete(task.id)}
-              className={`w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 ${task.isPostponed ? "text-white/70" : "text-secondary"}`}
+              className={`w-10 h-10 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 ${task.isDeferred ? "text-white/70" : "text-secondary"}`}
             >
               <Trash2 size={18} />
             </button>
             <button 
               onClick={() => onStart(task.id)}
               className={`px-6 py-2 rounded-xl flex items-center gap-2 font-bold transition-all ${
-                task.isPostponed 
+                task.isDeferred 
                   ? "bg-white/20 text-white hover:bg-white/30" 
                   : "bg-accent/10 text-accent hover:bg-accent hover:text-white"
               }`}
