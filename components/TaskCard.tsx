@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle, Loader2 } from "lucide-react";
+import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle, Loader2, Split } from "lucide-react";
 import { Task } from "@/types";
 import { useTaskContext } from "@/context/TaskContext";
 import { DifficultyEditor } from "./DifficultyEditor";

@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     // [캐싱] 1단계: 캐시 조회 (Fail-safe: 캐시 실패 시 무시하고 진행)
     const cacheKey = generateCacheKey(prompt, PROMPT_VERSION, {
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite',
       historyLength: history?.length || 0,
     });
 
@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     }
 
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3.1-flash-lite',
       generationConfig: { responseMimeType: 'application/json' }
     });
 

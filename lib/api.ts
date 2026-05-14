@@ -9,13 +9,18 @@ import { getDifficultyHistory } from './userHistory';
 export async function parseWithAI(prompt: string): Promise<EngineResponse> {
   try {
     const history = getDifficultyHistory();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
     const response = await fetch('/api/parse', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ prompt, history }),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json();
