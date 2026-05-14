@@ -98,6 +98,7 @@ export interface TaskState {
   activeTaskId: string | null;
   searchQuery: string;
   theme: 'dark' | 'light';
+  sortingMode: 'default' | 'adaptive';
 }
 
 // Context actions
@@ -115,4 +116,5 @@ export type TaskAction =
   | { type: 'DEFER_TASK'; payload: { id: string } }
   | { type: 'LOAD_STATE'; payload: TaskState }
   | { type: 'UPDATE_TASK_DIFFICULTY'; payload: { id: string; newDifficulty: number } }
-  | { type: 'TICK_STAY_TIME'; payload: { id: string; timeMs: number } };
+  | { type: 'TICK_STAY_TIME'; payload: { id: string; timeMs: number } }
+  | { type: 'SET_SORTING_MODE'; payload: { mode: 'default' | 'adaptive' } };

@@ -10,6 +10,8 @@ import React, { createContext, useContext, useReducer, useEffect, useCallback } 
 import { Task, TaskState, TaskAction } from "@/types";
 import { parseTaskInput, categoryToColorClass } from "@/lib/categoryEngine";
 import { addDifficultyHistory } from "@/lib/userHistory";
+import { DefaultSortingStrategy } from "@/lib/sorting/DefaultSortingStrategy";
+import { AdaptiveSortingStrategy } from "@/lib/sorting/AdaptiveSortingStrategy";
 
 // localStorage key
 const STORAGE_KEY = "flow-todo-state";
@@ -21,6 +23,7 @@ const initialState: TaskState = {
   activeTaskId: null,
   searchQuery: "",
   theme: "light",
+  sortingMode: "default",
 };
 
 // UUID 생성
@@ -178,6 +181,10 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
       return { ...state, tasks: updatedTasks };
     }
 
+    case "SET_SORTING_MODE": {
+      return { ...state, sortingMode: action.payload.mode };
+    }
+
     case "LOAD_STATE": {
       return action.payload;
     }
@@ -313,19 +320,12 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    return tasks.sort((a, b) => {
-      if (a.isDeferred && !b.isDeferred) return -1;
-      if (!a.isDeferred && b.isDeferred) return 1;
-      if (a.isDeferred && b.isDeferred) {
-        return b.deferCount - a.deferCount; 
-      }
-      
-      if (a.isImportant && !b.isImportant) return -1;
-      if (!a.isImportant && b.isImportant) return 1;
-      
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-  }, [state.tasks, state.searchQuery]);
+    const strategy = state.sortingMode === "adaptive" 
+      ? new AdaptiveSortingStrategy() 
+      : new DefaultSortingStrategy();
+
+    return strategy.sort(tasks);
+  }, [state.tasks, state.searchQuery, state.sortingMode]);
 
   const getImportantTasks = useCallback(() => {
     return state.tasks.filter((t) => t.isImportant);

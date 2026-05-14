@@ -107,6 +107,21 @@ export default function Home() {
             </span>
           )}
         </div>
+        <div className="flex items-center gap-4 bg-sidebar-bg p-1 rounded-xl border border-border">
+          <button 
+            onClick={() => dispatch({ type: "SET_SORTING_MODE", payload: { mode: "default" } })}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${state.sortingMode === "default" ? "bg-card-bg text-accent shadow-sm" : "text-secondary hover:text-foreground"}`}
+          >
+            기본 정렬
+          </button>
+          <button 
+            onClick={() => dispatch({ type: "SET_SORTING_MODE", payload: { mode: "adaptive" } })}
+            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${state.sortingMode === "adaptive" ? "bg-accent text-white shadow-md shadow-accent/20" : "text-secondary hover:text-foreground"}`}
+          >
+            <Clock size={14} />
+            AI 적응형
+          </button>
+        </div>
         <div className="flex items-center gap-2">
           <button className="p-2 text-secondary hover:text-foreground transition-all">
             <ListFilter size={20} />
