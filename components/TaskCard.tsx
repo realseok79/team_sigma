@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle } from "lucide-react";
+import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle, Loader2 } from "lucide-react";
 import { Task } from "@/types";
 import { useTaskContext } from "@/context/TaskContext";
 import { DifficultyEditor } from "./DifficultyEditor";
@@ -126,7 +126,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
     <div 
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className={`group relative rounded-2xl border transition-all duration-300 ${
+      className={`group relative rounded-2xl border transition-all duration-300 ${task.isAnalyzing ? 'opacity-60 pointer-events-none' : ''} ${
       isActive 
         ? "bg-accent/[0.03] border-accent/30 shadow-lg shadow-accent/5 p-8" 
         : `${task.isDeferred ? postponedStyle : "bg-card-bg"} border-border hover:border-accent/20 hover:shadow-md p-6`
@@ -139,6 +139,7 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
       <div className="flex items-center justify-between gap-6">
         <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2">
+            {task.isAnalyzing && <Loader2 size={16} className="animate-spin text-accent" />}
             <h3 className={`font-semibold transition-colors ${isActive ? "text-xl text-foreground" : "text-[16px]"} ${task.isDeferred && task.deferCount >= 3 ? "text-inherit" : "text-foreground/90"}`}>
               {task.title}
               {task.isDeferred && (

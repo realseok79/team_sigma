@@ -36,7 +36,7 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
     }
     case "ADD_TASK": {
       const newTask: Task = {
-        id: generateId(),
+        id: action.payload.id || generateId(),
         title: action.payload.title,
         category: action.payload.category,
         categoryColor: action.payload.categoryColor,
@@ -59,8 +59,16 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
         isDeferred: false,
         // [행동 데이터 로깅]
         detailPageStayTime: 0,
+        isAnalyzing: action.payload.isAnalyzing,
       };
       return { ...state, tasks: [...state.tasks, newTask] };
+    }
+
+    case "UPDATE_TASK": {
+      const updatedTasks = state.tasks.map((t) =>
+        t.id === action.payload.id ? { ...t, ...action.payload.data } : t
+      );
+      return { ...state, tasks: updatedTasks };
     }
 
     case "DELETE_TASK": {
@@ -189,7 +197,7 @@ function taskReducer(state: TaskState, action: TaskAction): TaskState {
 interface TaskContextType {
   state: TaskState;
   dispatch: React.Dispatch<TaskAction>;
-  addTask: (input: string, startTime?: string, endTime?: string) => void;
+  addTask: (input: string, explicitStartTime?: string, explicitEndTime?: string) => string;
   currentTime: Date;
   getFilteredTasks: () => Task[];
   getImportantTasks: () => Task[];
@@ -269,9 +277,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
   const addTask = useCallback(
     (input: string, explicitStartTime?: string, explicitEndTime?: string) => {
       const parsed = parseTaskInput(input);
+      const newId = generateId();
       dispatch({
         type: "ADD_TASK",
         payload: {
+          id: newId,
           title: parsed.title,
           category: parsed.category.name,
           categoryColor: categoryToColorClass(parsed.category),
@@ -283,8 +293,10 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
           priority: parsed.priority,
           startTime: explicitStartTime || parsed.startTime,
           endTime: explicitEndTime || parsed.endTime,
+          isAnalyzing: true,
         },
       });
+      return newId;
     },
     [dispatch]
   );

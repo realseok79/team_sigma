@@ -23,9 +23,18 @@ export default function Home() {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
 
+    // 낙관적 업데이트: 즉시 UI에 추가 (isAnalyzing: true 로 표시)
+    const tempId = addTask(trimmed, startTime, endTime);
+
+    // 입력 초기화 (사용자는 즉시 다음 작업을 입력 가능)
+    setInputValue("");
+    setStartTime("");
+    setEndTime("");
+    setShowTimePicker(false);
     setIsAnalyzing(true);
+
     try {
-      // [지능형 엔진] 1. AI 분석 수행
+      // [지능형 엔진] 1. AI 분석 비동기 수행
       const result = await parseWithAI(trimmed);
 
       if (result.action === "CREATE_TASK") {
@@ -34,43 +43,39 @@ export default function Home() {
         const categories = getAllCategories();
         const categoryInfo = categories.find(c => c.name === payload.category) || categories[categories.length - 1];
 
-        // 2. 상태 업데이트 (AI 파싱값 + 팀원의 수동 입력값 병합)
+        // 2. 상태 업데이트 (AI 파싱값으로 기존 태스크 업데이트)
         dispatch({
-          type: "ADD_TASK",
+          type: "UPDATE_TASK",
           payload: {
-            title: payload.title || trimmed,
-            category: categoryInfo.name,
-            categoryColor: categoryToColorClass(categoryInfo),
-            isImportant: payload.isImportant || false,
-            dueDate: payload.dueDate,
-            entryType: payload.entryType || "TODO",
-            difficulty: payload.difficulty,
-            estimatedTime: payload.estimatedTime,
-            priority: payload.priority,
-            // [통합 로직] 수동 설정이 있으면 우선순위, 없으면 AI가 찾은 시간 사용
-            startTime: startTime || payload.startTime,
-            endTime: endTime || payload.endTime,
+            id: tempId,
+            data: {
+              title: payload.title || trimmed,
+              category: categoryInfo.name,
+              categoryColor: categoryToColorClass(categoryInfo),
+              isImportant: payload.isImportant || false,
+              dueDate: payload.dueDate,
+              entryType: payload.entryType || "TODO",
+              difficulty: payload.difficulty,
+              estimatedTime: payload.estimatedTime,
+              priority: payload.priority,
+              // 수동 설정 유지
+              startTime: startTime || payload.startTime,
+              endTime: endTime || payload.endTime,
+              isAnalyzing: false, // 분석 완료
+            }
           },
         });
       } else if (result.action === "CHANGE_THEME") {
         const targetTheme = result.payload.theme || "light";
         dispatch({ type: "SET_THEME", payload: { theme: targetTheme } });
+        // 테마 변경 명령인 경우, 임시로 추가된 태스크 삭제
+        dispatch({ type: "DELETE_TASK", payload: { id: tempId } });
       }
 
-      // 입력 초기화
-      setInputValue("");
-      setStartTime("");
-      setEndTime("");
-      setShowTimePicker(false);
-      inputRef.current?.focus();
     } catch (error) {
       console.error("AI Parsing Error:", error);
-      // Fallback: 로컬 정규식 기반 파싱
-      addTask(trimmed, startTime, endTime);
-      setInputValue("");
-      setStartTime("");
-      setEndTime("");
-      setShowTimePicker(false);
+      // Fallback: AI 분석 실패 시 로딩 상태만 해제 (로컬 파싱값 유지)
+      dispatch({ type: "UPDATE_TASK", payload: { id: tempId, data: { isAnalyzing: false } } });
     } finally {
       setIsAnalyzing(false);
     }
@@ -156,7 +161,7 @@ export default function Home() {
       )}
 
       {/* 빈 상태 */}
-      {taskCount === 0 && !isAnalyzing && (
+      {taskCount === 0 && (
         <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-sidebar-bg flex items-center justify-center">
             <Inbox size={32} className="text-secondary" />
@@ -189,14 +194,13 @@ export default function Home() {
               if (inputValue.trim()) setShowTimePicker(true);
             }}
             onKeyDown={handleKeyDown}
-            disabled={isAnalyzing}
-            placeholder={isAnalyzing ? "AI가 내용을 분석하고 있습니다..." : "새로운 작업을 추가하세요... (예: 중요! 내일 발표 준비하기)"}
+            placeholder="새로운 작업을 추가하세요... (예: 중요! 내일 발표 준비하기)"
             className="w-full bg-transparent py-5 pl-14 pr-24 focus:outline-none transition-all text-foreground placeholder:text-secondary/60 disabled:opacity-70"
           />
           {!showTimePicker && (
             <button 
               onClick={handleAddTask}
-              disabled={!inputValue.trim() || isAnalyzing}
+              disabled={!inputValue.trim()}
               className="absolute right-6 top-1/2 -translate-y-1/2 bg-accent/10 text-accent font-bold text-sm px-4 py-1.5 rounded-lg hover:bg-accent hover:text-white transition-all disabled:opacity-40"
             >
               추가
@@ -248,10 +252,10 @@ export default function Home() {
               </button>
               <button 
                 onClick={handleAddTask}
-                disabled={!inputValue.trim() || isAnalyzing}
+                disabled={!inputValue.trim()}
                 className="bg-accent text-white font-bold text-sm px-6 py-2 rounded-xl hover:bg-accent/90 transition-all flex items-center gap-2"
               >
-                {isAnalyzing ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                <Plus size={16} />
                 추가
               </button>
             </div>

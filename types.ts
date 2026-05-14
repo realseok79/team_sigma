@@ -35,6 +35,9 @@ export interface Task {
 
   // [행동 데이터 로깅] 상세 뷰 체류 시간
   detailPageStayTime: number; // 초 단위 누적 체류 시간
+
+  // [UI 상태] AI 분석 중 여부 (낙관적 업데이트용)
+  isAnalyzing?: boolean;
 }
 
 export interface CategoryInfo {
@@ -99,7 +102,8 @@ export interface TaskState {
 
 // Context actions
 export type TaskAction =
-  | { type: 'ADD_TASK'; payload: Omit<Task, 'id' | 'createdAt' | 'status' | 'elapsedTime' | 'deferCount' | 'isDeferred' | 'originalDate' | 'lastDeferredAt' | 'detailPageStayTime'> }
+  | { type: 'ADD_TASK'; payload: Omit<Task, 'createdAt' | 'status' | 'elapsedTime' | 'deferCount' | 'isDeferred' | 'originalDate' | 'lastDeferredAt' | 'detailPageStayTime'> }
+  | { type: 'UPDATE_TASK'; payload: { id: string; data: Partial<Task> } }
   | { type: 'DELETE_TASK'; payload: { id: string } }
   | { type: 'START_TASK'; payload: { id: string } }
   | { type: 'PAUSE_TASK'; payload: { id: string } }
