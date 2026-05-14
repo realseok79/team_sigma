@@ -60,6 +60,14 @@ export interface ParsedInput {
 // [지능형 엔진] API 응답 규격
 export type EngineAction = 'CREATE_TASK' | 'CHANGE_THEME';
 
+export interface DifficultyHistory {
+  taskTitle: string;
+  category: string;
+  aiSuggestedDifficulty: number;
+  userAdjustedDifficulty: number;
+  adjustedAt: string; // ISO Date String
+}
+
 export interface EngineResponse {
   action: EngineAction;
   payload: {
@@ -98,4 +106,5 @@ export type TaskAction =
   | { type: 'SET_THEME'; payload: { theme: 'dark' | 'light' } }
   | { type: 'TICK_TIMER' }
   | { type: 'POSTPONE_TASK'; payload: { id: string } }
-  | { type: 'LOAD_STATE'; payload: TaskState };
+  | { type: 'LOAD_STATE'; payload: TaskState }
+  | { type: 'UPDATE_TASK_DIFFICULTY'; payload: { id: string; newDifficulty: number } };
