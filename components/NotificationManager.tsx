@@ -55,20 +55,20 @@ export function NotificationManager() {
           const duration = endTimeInMinutes - startTimeInMinutes;
           const threshold = Math.floor(duration / 3);
           
-          const lastPostponedDate = task.lastPostponedAt ? new Date(task.lastPostponedAt).toDateString() : null;
+          const lastDeferredDate = task.lastDeferredAt ? new Date(task.lastDeferredAt).toDateString() : null;
           const todayDate = now.toDateString();
 
-          if (currentTimeInMinutes >= startTimeInMinutes + threshold && task.status === "pending" && lastPostponedDate !== todayDate) {
-            dispatch({ type: "POSTPONE_TASK", payload: { id: task.id } });
+          if (currentTimeInMinutes >= startTimeInMinutes + threshold && task.status === "pending" && lastDeferredDate !== todayDate) {
+            dispatch({ type: "DEFER_TASK", payload: { id: task.id } });
             addNotification(`${task.title}을(를) 하지 않아 다음날로 미뤘습니다.`, "warning");
           }
         } else {
             // 종료 시간이 없는 경우 시작 시간 30분 경과 시 미룸 (기본값)
-            const lastPostponedDate = task.lastPostponedAt ? new Date(task.lastPostponedAt).toDateString() : null;
+            const lastDeferredDate = task.lastDeferredAt ? new Date(task.lastDeferredAt).toDateString() : null;
             const todayDate = now.toDateString();
 
-            if (currentTimeInMinutes >= startTimeInMinutes + 30 && task.status === "pending" && lastPostponedDate !== todayDate) {
-                dispatch({ type: "POSTPONE_TASK", payload: { id: task.id } });
+            if (currentTimeInMinutes >= startTimeInMinutes + 30 && task.status === "pending" && lastDeferredDate !== todayDate) {
+                dispatch({ type: "DEFER_TASK", payload: { id: task.id } });
                 addNotification(`${task.title}을(를) 하지 않아 다음날로 미뤘습니다.`, "warning");
             }
         }
@@ -79,7 +79,7 @@ export function NotificationManager() {
     checkTasks(); // 즉시 실행
 
     return () => clearInterval(interval);
-  }, [state.tasks, addNotification, dispatch, notifications]);
+  }, [state.tasks, addNotification, dispatch]);
 
   if (notifications.length === 0) return null;
 
