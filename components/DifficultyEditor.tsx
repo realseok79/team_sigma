@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Gauge } from "lucide-react";
 
 interface DifficultyEditorProps {
   difficulty: number;
@@ -10,42 +9,53 @@ interface DifficultyEditorProps {
 }
 
 export function DifficultyEditor({ difficulty, onChange, readOnly = false }: DifficultyEditorProps) {
-  const [hovered, setHovered] = React.useState<number | null>(null);
-
-  const displayValue = hovered !== null ? hovered : difficulty;
-
   return (
-    <div className="flex items-center gap-1.5" onMouseLeave={() => setHovered(null)}>
-      {[1, 2, 3, 4, 5].map((level) => (
-        <button
-          key={level}
-          type="button"
+    <div className="flex items-center gap-3 w-32 group">
+      <div className="relative flex-1 flex items-center h-6">
+        {/* 커스텀 슬라이더 트랙 */}
+        <div className="absolute w-full h-1.5 bg-sidebar-bg border border-border rounded-full overflow-hidden">
+          <div 
+            className="h-full bg-accent transition-all duration-300 shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]"
+            style={{ width: `${(difficulty / 5) * 100}%` }}
+          />
+        </div>
+        
+        {/* 실제 input (투명하게 겹침) */}
+        <input
+          type="range"
+          min="1"
+          max="5"
+          step="1"
+          value={difficulty}
           disabled={readOnly}
-          onClick={(e) => {
+          onChange={(e) => {
             e.stopPropagation();
-            onChange(level);
+            onChange(parseInt(e.target.value));
           }}
-          onMouseEnter={() => setHovered(level)}
-          className={`group relative transition-all duration-200 ${readOnly ? "cursor-default" : "cursor-pointer"}`}
-        >
-          <div className={`w-3.5 h-6 rounded-[2px] transition-all duration-300 ${
-            level <= displayValue
-              ? "bg-accent shadow-[0_0_8px_rgba(var(--accent-rgb),0.4)]"
-              : "bg-sidebar-bg border border-border"
-          } ${!readOnly && level <= (hovered || 0) ? "scale-110 brightness-110" : ""}`} />
-          
-          {/* 툴팁 */}
-          {!readOnly && level === (hovered || difficulty) && (
-            <span className="absolute -top-7 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] font-bold px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-              난이도 {level}
-            </span>
-          )}
-        </button>
-      ))}
-      {!readOnly && (
-        <span className="ml-1 text-[10px] font-bold text-secondary uppercase tracking-wider opacity-60">
-          클릭하여 수정
+          className={`absolute w-full h-full opacity-0 z-10 ${readOnly ? "cursor-default" : "cursor-pointer"}`}
+        />
+
+        {/* 커스텀 슬라이더 썸(Thumb) */}
+        <div 
+          className="absolute w-4 h-4 bg-white border-2 border-accent rounded-full shadow-md pointer-events-none transition-all duration-200 z-0"
+          style={{ 
+            left: `calc(${(difficulty / 5) * 100}% - 8px)`,
+            transform: "scale(1)",
+          }}
+        />
+      </div>
+
+      {/* 숫자 표시 */}
+      <div className="min-w-[20px] text-center">
+        <span className="text-[13px] font-black text-accent drop-shadow-sm">
+          {difficulty}
         </span>
+      </div>
+
+      {!readOnly && (
+        <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-foreground text-background text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none shadow-xl border border-border/50">
+          난이도 조정: {difficulty}
+        </div>
       )}
     </div>
   );
