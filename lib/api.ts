@@ -1,4 +1,5 @@
 import { EngineResponse } from '@/types';
+import { getDifficultyHistory } from './userHistory';
 
 /**
  * 지능형 파싱 엔진 API 호출 유틸리티
@@ -7,12 +8,13 @@ import { EngineResponse } from '@/types';
  */
 export async function parseWithAI(prompt: string): Promise<EngineResponse> {
   try {
+    const history = getDifficultyHistory();
     const response = await fetch('/api/parse', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ prompt }),
+      body: JSON.stringify({ prompt, history }),
     });
 
     if (!response.ok) {

@@ -41,7 +41,7 @@ const SYSTEM_PROMPT = `
 
 export async function POST(req: NextRequest) {
   try {
-    const { prompt } = await req.json();
+    const { prompt, history } = await req.json();
 
     if (!prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
@@ -56,7 +56,21 @@ export async function POST(req: NextRequest) {
       generationConfig: { responseMimeType: 'application/json' }
     });
 
-    const result = await model.generateContent([SYSTEM_PROMPT, `사용자 입력: "${prompt}"`]);
+    // [학습 알고리즘] 사용자 수정 이력이 있다면 프롬프트에 주입
+    let userContext = "";
+    if (history && Array.isArray(history) && history.length > 0) {
+      userContext = `
+[사용자 개인화 학습 데이터]
+다음은 사용자가 과거에 AI가 제안한 난이도를 직접 수정한 내역입니다. 
+이 패턴을 분석하여 사용자가 어떤 작업을 어렵게 느끼는지 파악하고, 이번 제안에 반영하세요.
+${history.map((h: any) => `- 작업: "${h.taskTitle}" (카테고리: ${h.category}) -> AI제안: ${h.aiSuggestedDifficulty}, 사용자수정: ${h.userAdjustedDifficulty}`).join('\n')}
+`;
+    }
+
+    const result = await model.generateContent([
+      SYSTEM_PROMPT + (userContext ? `\n\n${userContext}` : ""), 
+      `사용자 입력: "${prompt}"`
+    ]);
     const responseText = result.response.text();
     
     const parsedResponse: EngineResponse = JSON.parse(responseText);
