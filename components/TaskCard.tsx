@@ -4,6 +4,7 @@ import React from "react";
 import { Play, Pause, Clock, Star, Trash2, Gauge, Hourglass, AlertCircle } from "lucide-react";
 import { Task } from "@/types";
 import { useTaskContext } from "@/context/TaskContext";
+import { DifficultyEditor } from "./DifficultyEditor";
 
 interface TaskCardProps {
   task: Task;
@@ -49,7 +50,7 @@ const priorityLabels = {
 };
 
 export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggleImportant }: TaskCardProps) {
-  const { currentTime } = useTaskContext();
+  const { currentTime, updateTaskDifficulty } = useTaskContext();
   const isActive = task.status === "active";
   const isTodo = task.entryType === "TODO";
 
@@ -160,9 +161,15 @@ export function TaskCard({ task, onStart, onPause, onComplete, onDelete, onToggl
                   </div>
                 )}
                 {task.difficulty && (
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-secondary bg-sidebar-bg px-2 py-0.5 rounded uppercase tracking-wider">
-                    <Gauge size={12} />
-                    난이도: {task.difficulty}
+                  <div className="flex items-center gap-3 text-[11px] font-bold text-secondary bg-sidebar-bg px-2 py-0.5 rounded uppercase tracking-wider">
+                    <div className="flex items-center gap-1">
+                      <Gauge size={12} />
+                      난이도
+                    </div>
+                    <DifficultyEditor 
+                      difficulty={task.difficulty} 
+                      onChange={(newVal) => updateTaskDifficulty(task.id, newVal)} 
+                    />
                   </div>
                 )}
               </>
