@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { EngineResponse } from '@/types';
+import { parseCache, generateCacheKey, DEFAULT_TTL_MS } from '@/lib/cacheManager';
 
+// [Stateless 참고] genAI는 설정(Configuration) 객체로,
+// 요청 간 사용자 상태를 보관하지 않습니다. Stateless 원칙 준수.
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+// 시스템 프롬프트 버전: 프롬프트 내용이 변경될 때마다 버전을 올려주세요.
+// 이를 통해 캐시 키가 변경되어 이전 결과가 반환되지 않습니다.
+const PROMPT_VERSION = "v1.0.0";
 
 const SYSTEM_PROMPT = `
 당신은 'Team-Sigma'의 지능형 엔진입니다. 사용자의 입력을 분석하여 작업(Task) 생성 또는 시스템 제어 명령을 JSON으로 반환하세요.
@@ -51,6 +58,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Gemini API Key is missing' }, { status: 500 });
     }
 
+    // [캐싱] 1단계: 캐시 조회 (Fail-safe: 캐시 실패 시 무시하고 진행)
+    const cacheKey = generateCacheKey(prompt, PROMPT_VERSION, {
+      model: 'gemini-2.5-flash',
+      historyLength: history?.length || 0,
+    });
+
+    const cached = parseCache.get(cacheKey);
+    if (cached) {
+      const stats = parseCache.getStats();
+      return NextResponse.json(cached, {
+        headers: {
+          'X-Cache': 'HIT',
+          'X-Cache-Stats': `hits=${stats.hits},misses=${stats.misses},rate=${stats.hitRate}`,
+        },
+      });
+    }
+
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
       generationConfig: { responseMimeType: 'application/json' }
@@ -75,7 +99,16 @@ ${history.map((h: any) => `- 작업: "${h.taskTitle}" (카테고리: ${h.categor
     
     const parsedResponse: EngineResponse = JSON.parse(responseText);
 
-    return NextResponse.json(parsedResponse);
+    // [캐싱] 2단계: 결과 저장 (Fail-safe: 저장 실패 시 무시)
+    parseCache.set(cacheKey, parsedResponse, DEFAULT_TTL_MS);
+
+    const stats = parseCache.getStats();
+    return NextResponse.json(parsedResponse, {
+      headers: {
+        'X-Cache': 'MISS',
+        'X-Cache-Stats': `hits=${stats.hits},misses=${stats.misses},rate=${stats.hitRate}`,
+      },
+    });
 
   } catch (error) {
     console.error('Gemini API Error:', error);

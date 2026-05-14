@@ -6,7 +6,7 @@
 // [통합본: 지능형 엔진 + 팀원 기능]
 // ==============================
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback } from "react";
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useMemo, useRef } from "react";
 import { Task, TaskState, TaskAction } from "@/types";
 import { parseTaskInput, categoryToColorClass } from "@/lib/categoryEngine";
 import { addDifficultyHistory } from "@/lib/userHistory";
@@ -340,10 +340,26 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
     [dispatch]
   );
 
-  const getFilteredTasks = useCallback(() => {
-    // 아카이브된 태스크는 필터링 시 제외
+  // [정렬 최적화] 태스크 배열의 실질적 변경 여부를 감지하기 위한 핑거프린트
+  // 단순 참조 변경이 아닌 내부 데이터(정렬에 영향을 주는 필드)의 실질적 변경만 추적합니다.
+  const taskFingerprint = useMemo(() => {
+    return state.tasks
+      .filter(t => !t.isArchived)
+      .map(t => `${t.id}:${t.status}:${t.deferCount}:${t.difficulty}:${t.detailPageStayTime}:${t.priority}:${t.isImportant}:${t.isStuck}:${t.startTime}:${t.endTime}`)
+      .join('|');
+  }, [state.tasks]);
+
+  // Strategy 인스턴스 캐싱 (모드가 변경되지 않으면 재생성하지 않음)
+  const sortingStrategy = useMemo(() => {
+    return state.sortingMode === "adaptive"
+      ? new AdaptiveSortingStrategy()
+      : new DefaultSortingStrategy();
+  }, [state.sortingMode]);
+
+  // 정렬 결과 메모이제이션: 핑거프린트, 검색어, 정렬 전략이 변경될 때만 재정렬
+  const sortedFilteredTasks = useMemo(() => {
     let tasks = state.tasks.filter(t => !t.isArchived);
-    
+
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase();
       tasks = tasks.filter(
@@ -353,12 +369,11 @@ export function TaskProvider({ children }: { children: React.ReactNode }) {
       );
     }
 
-    const strategy = state.sortingMode === "adaptive" 
-      ? new AdaptiveSortingStrategy() 
-      : new DefaultSortingStrategy();
+    return sortingStrategy.sort(tasks);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskFingerprint, state.searchQuery, sortingStrategy]);
 
-    return strategy.sort(tasks);
-  }, [state.tasks, state.searchQuery, state.sortingMode]);
+  const getFilteredTasks = useCallback(() => sortedFilteredTasks, [sortedFilteredTasks]);
 
   const getImportantTasks = useCallback(() => {
     return state.tasks.filter((t) => t.isImportant);

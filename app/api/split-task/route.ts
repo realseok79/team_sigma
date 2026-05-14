@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { splitCache, generateCacheKey, DEFAULT_TTL_MS } from '@/lib/cacheManager';
 
+// [Stateless 참고] genAI는 설정 객체로, 요청 간 사용자 상태를 보관하지 않습니다.
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+
+// 시스템 프롬프트 버전: 내용 변경 시 버전을 올려주세요.
+const PROMPT_VERSION = "v1.0.0";
 
 const SYSTEM_PROMPT = `
 당신은 작업 분할 전문가입니다. 사용자가 오랫동안 미루고 있는 '악성 태스크'를 실행 가능한 2~4개의 작은 하위 태스크로 분해하세요.
@@ -30,6 +35,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Task title is required' }, { status: 400 });
     }
 
+    // [캐싱] 1단계: 캐시 조회 (Fail-safe)
+    const cacheKey = generateCacheKey(taskTitle, PROMPT_VERSION, {
+      model: 'gemini-2.5-flash',
+      taskCategory,
+      difficulty,
+    });
+
+    const cached = splitCache.get(cacheKey);
+    if (cached) {
+      const stats = splitCache.getStats();
+      return NextResponse.json(cached, {
+        headers: {
+          'X-Cache': 'HIT',
+          'X-Cache-Stats': `hits=${stats.hits},misses=${stats.misses},rate=${stats.hitRate}`,
+        },
+      });
+    }
+
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash',
       generationConfig: { responseMimeType: 'application/json' }
@@ -43,7 +66,18 @@ export async function POST(req: NextRequest) {
     ]);
     
     const responseText = result.response.text();
-    return NextResponse.json(JSON.parse(responseText));
+    const parsedResponse = JSON.parse(responseText);
+
+    // [캐싱] 2단계: 결과 저장 (Fail-safe)
+    splitCache.set(cacheKey, parsedResponse, DEFAULT_TTL_MS);
+
+    const stats = splitCache.getStats();
+    return NextResponse.json(parsedResponse, {
+      headers: {
+        'X-Cache': 'MISS',
+        'X-Cache-Stats': `hits=${stats.hits},misses=${stats.misses},rate=${stats.hitRate}`,
+      },
+    });
 
   } catch (error) {
     console.error('Split Task Error:', error);
