@@ -19,7 +19,7 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
     private static final double K_STABILITY_CONSTANT = 10.0; // Prevents division by near-zero
 
     @Override
-    public PriorityScore calculate(Task task, LocalDateTime now, long availableMinutes) {
+    public PriorityScore calculate(Task task, LocalDateTime now, long availableMinutes, java.util.Set<String> currentTags) {
         // 1. Hard Constraint: Available Time vs Estimated Effort
         if (task.getEstimatedEffortMinutes() > availableMinutes) {
             return PriorityScore.zero();
@@ -29,11 +29,24 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
         double importanceScore = task.getImportance() * W1_IMPORTANCE;
         double urgencyScore = calculateUrgency(task, now);
         double gravityAdjustment = calculateGravityAdjustment(task);
+        double contextBoost = calculateContextBoost(task, currentTags);
 
-        double total = importanceScore + urgencyScore + gravityAdjustment;
+        double total = importanceScore + urgencyScore + gravityAdjustment + contextBoost;
 
         // 3. Final Score (Value Object handles max(0, total))
         return PriorityScore.of(total);
+    }
+
+    private double calculateContextBoost(Task task, java.util.Set<String> currentTags) {
+        if (currentTags == null || currentTags.isEmpty() || task.getTaskTags().isEmpty()) {
+            return 0.0;
+        }
+        
+        long matchCount = task.getTaskTags().stream()
+                .filter(currentTags::contains)
+                .count();
+        
+        return matchCount * 150.0; // 태그 하나당 150점 가산 (임시 가중치)
     }
 
     private double calculateUrgency(Task task, LocalDateTime now) {

@@ -19,5 +19,5 @@ public interface PriorityCalculationStrategy {
      * For high-volume tasks, consider a @Scheduled batch job to pre-calculate
      * scores every 15-30 minutes to reduce real-time computation overhead.
      */
-    PriorityScore calculate(Task task, LocalDateTime now, long availableMinutes);
+    PriorityScore calculate(Task task, LocalDateTime now, long availableMinutes, java.util.Set<String> currentTags);
 }
