@@ -9,11 +9,12 @@ import java.time.LocalDateTime;
  */
 public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrategy {
 
-    // Weights (Can be moved to configuration/properties)
-    private static final double W1_IMPORTANCE = 100.0;
-    private static final double W2_URGENCY = 5000.0;
-    private static final double W3_GRAVITY = 50.0;
-    
+    private final com.sigma.todo.config.DynamicWeightProvider weightProvider;
+
+    public DefaultDynamicPriorityStrategy(com.sigma.todo.config.DynamicWeightProvider weightProvider) {
+        this.weightProvider = weightProvider;
+    }
+
     private static final int ZOMBIE_THRESHOLD = 5;
     private static final double ZOMBIE_PENALTY = -99999.0;
     private static final double K_STABILITY_CONSTANT = 10.0; // Prevents division by near-zero
@@ -26,7 +27,7 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
         }
 
         // 2. Base Components
-        double importanceScore = task.getImportance() * W1_IMPORTANCE;
+        double importanceScore = task.getImportance() * weightProvider.getImportanceWeight();
         double urgencyScore = calculateUrgency(task, now);
         double gravityAdjustment = calculateGravityAdjustment(task);
         double contextBoost = calculateContextBoost(task, currentTags);
@@ -46,7 +47,7 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
                 .filter(currentTags::contains)
                 .count();
         
-        return matchCount * 150.0; // 태그 하나당 150점 가산 (임시 가중치)
+        return matchCount * weightProvider.getContextBoostWeight();
     }
 
     private double calculateUrgency(Task task, LocalDateTime now) {
@@ -56,7 +57,7 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
         // Limit: As dt -> 0, Score -> W2 / K. This is the Upper Bound.
         long dt = Math.max(0, minutesLeft); 
         
-        return W2_URGENCY / (dt + K_STABILITY_CONSTANT);
+        return weightProvider.getUrgencyWeight() / (dt + K_STABILITY_CONSTANT);
     }
 
     private double calculateGravityAdjustment(Task task) {
@@ -68,6 +69,6 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
         }
         
         // Warning phase: Score increases slightly as delay increases
-        return count * W3_GRAVITY;
+        return count * weightProvider.getGravityWeight();
     }
 }

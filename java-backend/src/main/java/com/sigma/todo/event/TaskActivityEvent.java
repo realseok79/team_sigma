@@ -1,3 +1,5 @@
 package com.sigma.todo.event;
 
-public record TaskActivityEvent(Long taskId, String action) {}
+import com.sigma.todo.dto.ContextData;
+
+public record TaskActivityEvent(Long taskId, String action, ContextData context) {}
