@@ -75,8 +75,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const modelName = process.env.AI_MODEL_NAME || 'gemini-3.1-flash-lite';
+    
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-3.1-flash-lite',
+      model: modelName,
       generationConfig: { responseMimeType: 'application/json' }
     });
 
@@ -110,11 +112,19 @@ ${history.map((h: any) => `- 작업: "${h.taskTitle}" (카테고리: ${h.categor
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Gemini API Error:', error);
+    
+    // [개선] 구체적인 에러 상태 코드와 메시지를 클라이언트에 전달
+    const status = error.status || 500;
+    const errorMessage = error.message || 'Failed to process request with AI';
+    
     return NextResponse.json(
-      { error: 'Failed to process request with AI' },
-      { status: 500 }
+      { 
+        error: errorMessage,
+        code: error.code || 'UNKNOWN_ERROR'
+      },
+      { status }
     );
   }
 }
