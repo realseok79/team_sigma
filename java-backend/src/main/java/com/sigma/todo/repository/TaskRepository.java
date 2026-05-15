@@ -15,6 +15,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      */
     @EntityGraph(attributePaths = {"taskTags"})
     @Query("SELECT t FROM Task t WHERE t.userId = :userId " +
+           "AND t.isActive = true " + // Soft Delete 필터
            "AND t.status = 'PENDING' " +
            "AND t.requiredEnergy <= :userEnergy")
     List<Task> findExecutableTasks(String userId, EnergyLevel userEnergy);

@@ -41,5 +41,7 @@ enum ActionType {
     SNOOZED, 
     IGNORED, 
     LOGGED_IN_VIEW, // 리스트 진입
-    TASK_CLICKED    // 특정 작업 상세 클릭
+    TASK_CLICKED,    // 특정 작업 상세 클릭
+    ARCHIVE_SUGGESTION_REJECTED, // 보관 제안 거절
+    ARCHIVE_SUGGESTION_SNOOZED    // 보관 제안 나중에 (Snooze)
 }

@@ -16,7 +16,7 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
     }
 
     private static final int ZOMBIE_THRESHOLD = 5;
-    private static final double ZOMBIE_PENALTY = -99999.0;
+    private static final int SUGGESTION_COOLDOWN_DAYS = 7;
     private static final double K_STABILITY_CONSTANT = 10.0; // Prevents division by near-zero
 
     @Override
@@ -38,7 +38,7 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
         double total = importanceScore + urgencyScore + gravityAdjustment + contextBoost + entropy;
 
         // 4. Exploration (탐색): 5% 확률로 새로운 작업 제안
-        String reason = determinePrimaryReason(importanceScore, urgencyScore, gravityAdjustment, contextBoost, task);
+        String reason = determinePrimaryReason(importanceScore, urgencyScore, gravityAdjustment, contextBoost, task, now);
         if (Math.random() < 0.05) {
             total += 1000.0; // Exploration Boost
             reason = "새로운 패턴 탐색을 위한 AI 추천";
@@ -53,7 +53,15 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
         return (Math.abs(seed + now.getMinute()) % 5) / 10.0;
     }
 
-    private String determinePrimaryReason(double importance, double urgency, double gravity, double context, Task task) {
+    private String determinePrimaryReason(double importance, double urgency, double gravity, double context, Task task, LocalDateTime now) {
+        // [Less is More] 방치된 작업에 대한 보관 제안 로직 (자동 삭제 지양)
+        if (task.getDelayCount() >= ZOMBIE_THRESHOLD) {
+            LocalDateTime lastSuggestion = task.getLastArchiveSuggestionDate();
+            if (lastSuggestion == null || lastSuggestion.isBefore(now.minusDays(SUGGESTION_COOLDOWN_DAYS))) {
+                return "방치된 작업 - 보관함 이동 권장";
+            }
+        }
+
         if (urgency > importance && urgency > gravity) return "마감 임박으로 우선순위 상승";
         if (gravity > importance) return "계속 미뤄진 작업 우선 처리 권장";
         if (context > 0) return "현재 상황(태그)과 높은 관련성";
@@ -86,12 +94,7 @@ public class DefaultDynamicPriorityStrategy implements PriorityCalculationStrate
     private double calculateGravityAdjustment(Task task) {
         int count = task.getDelayCount();
         
-        // Piecewise Function for Zombie Task Policy
-        if (count >= ZOMBIE_THRESHOLD) {
-            return ZOMBIE_PENALTY;
-        }
-        
-        // Warning phase: Score increases slightly as delay increases
+        // [Less is More] 자동 삭제(Hard Penalty)를 제거하고 점진적인 가중치만 적용
         return count * weightProvider.getGravityWeight();
     }
 }

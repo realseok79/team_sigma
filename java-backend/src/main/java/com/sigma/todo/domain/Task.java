@@ -29,6 +29,9 @@ public class Task {
     private int delayCount;
     private long estimatedEffortMinutes;
     
+    private boolean isActive = true; // Soft Delete용
+    private LocalDateTime lastArchiveSuggestionDate; // 보관 제안 Cooldown용
+    
     @Enumerated(EnumType.STRING)
     private TaskStatus status; // PENDING, COMPLETED, SNOOZED
 
@@ -50,6 +53,16 @@ public class Task {
         this.delayCount = delayCount;
         this.estimatedEffortMinutes = estimatedEffortMinutes;
         this.status = TaskStatus.PENDING;
+        this.isActive = true;
+    }
+
+    // Business Logic: Soft Delete
+    public void deactivate() {
+        this.isActive = false;
+    }
+
+    public void updateArchiveSuggestionDate(LocalDateTime date) {
+        this.lastArchiveSuggestionDate = date;
     }
 
     // Getters
@@ -61,6 +74,8 @@ public class Task {
     public long getEstimatedEffortMinutes() { return estimatedEffortMinutes; }
     public Set<String> getTaskTags() { return taskTags; }
     public TaskStatus getStatus() { return status; }
+    public boolean isActive() { return isActive; }
+    public LocalDateTime getLastArchiveSuggestionDate() { return lastArchiveSuggestionDate; }
 }
 
 enum TaskStatus {
